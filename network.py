@@ -31,6 +31,9 @@ class Peer:
             return f"TxnID: {txn_id}, {self.peer_id} pays {receiver.peer_id} {amount} coins"
         else:
             return None
+    
+    def get_next_event_timestmp(self):
+        return random.expovariate(0.2)
         
 
 class Network:
