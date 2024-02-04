@@ -1,10 +1,39 @@
 
 import argparse
 from network import Network
+from queue import Queue
+
+
+class EventQueue:
+    def __init__(self):
+        self.queue = Queue()
+    def push(self, event):
+        queue.put(event)
+    def pop(self):
+        return e.get()
 
 def main(n, z0, z1, txn_time, mining_time, simulation_until):
     network = Network(n, z0, z1)
     network.display_network()
+    # initialize event queue
+    event_queue = EventQueue()
+    while True:
+        # get next event
+        event = event_queue.pop()
+        # process event
+        if event.time > simulation_until:
+            break
+        if event.type == "transaction":
+            # process transaction
+            pass
+        elif event.type == "block":
+            # process block
+            pass
+        else:
+            print("Unknown event type")
+            break
+        # generate new events
+        # add to event queue
 
 if __name__ == "__main__":
 
