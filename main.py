@@ -1,5 +1,7 @@
 
 import argparse
+import numpy as np
+from constants import *
 from network import Network
 
 def main(n, z0, z1, txn_time, mining_time, simulation_until):

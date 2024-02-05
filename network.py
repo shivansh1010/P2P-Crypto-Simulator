@@ -2,6 +2,7 @@ import random
 import string
 import numpy as np
 from collections import deque
+from constants import *
 
 
 class Peer:
@@ -21,6 +22,18 @@ class Peer:
 
     def get_neighbors(self):
         return list(self.neighbors)
+    
+    def compute_delay(self, msg_size, receiver, prop_delay):
+        if(self.is_slow or receiver.is_slow):
+            link_speed = SLOW_LINK_SPEED
+        else:
+            link_speed = FAST_LINK_SPEED
+
+        queueing_delay = np.random.exponential((float(96)) / (link_speed * 1024))
+        transmission_delay = (msg_size * 8) / (link_speed * 1024)
+
+        total_delay = prop_delay + queueing_delay + transmission_delay
+        return total_delay
 
     def generate_transaction(self, peers):
         txn_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
@@ -38,6 +51,7 @@ class Network:
         self.n = n
         self.z0 = z0
         self.z1 = z1
+        self.prop_delay  = np.random.uniform(MIN_PROP_DELAY, MAX_PROP_DELAY) 
         self.peers = []
         self.neighbor_constraint = False
         self.connected_graph = False
