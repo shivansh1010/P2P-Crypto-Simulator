@@ -3,10 +3,71 @@ import argparse
 import numpy as np
 from constants import *
 from network import Network
+from queue import PriorityQueue
+import time
 
-def main(n, z0, z1, txn_time, mining_time, simulation_until):
+
+class EventQueue:
+    def __init__(self):
+        self.queue = PriorityQueue()
+    def push(self, event):
+        self.queue.put(event)
+    def pop(self):
+        return self.queue.get(block=False)
+
+class Event:
+    def __init__(self, time, peer, type):
+        self.time = time
+        self.peer = peer
+        self.type = type
+
+    def __lt__(self, other):
+        return self.time < other.time
+
+    def __str__(self):
+        return f"==Event(time {self.time}, peer {self.peer.peer_id}, type {self.type}=="
+
+def start_simulation(n, z0, z1, txn_time, mining_time, simulation_until):
     network = Network(n, z0, z1)
     network.display_network()
+    
+    event_queue = EventQueue()
+    # push initial timestamps of every peer to the queue
+    for peer in network.peers:
+        event_queue.push(Event(0, peer, "transaction"))
+
+    current_time = 0
+    while True:
+        # get next event
+        if not event_queue.queue.empty():
+            event = event_queue.pop()
+        else:
+            print("No more events")
+            break
+
+        # print(event)
+        time.sleep(event.time - current_time)
+        # process event
+        if event.time > simulation_until:
+            print ("Simulation time is up")
+            break
+        if event.type == "transaction":
+            # process transaction
+            print(f"Transaction event at time {event.time} for peer {event.peer.peer_id}")
+            pass
+        elif event.type == "block":
+            # process block
+            print(f"Block event at time {event.time} for peer {event.peer.peer_id}")
+            pass
+        else:
+            print("Unknown event type")
+            break
+            
+        # add to event queue
+        event_queue.push(Event(event.time + event.peer.get_next_event_timestmp(), 
+                            event.peer, "transaction"))
+        current_time = event.time
+
 
 if __name__ == "__main__":
 
@@ -41,6 +102,6 @@ if __name__ == "__main__":
     print("mining_time:", mining_time)
     print("simulation_until:", simulation_until)
 
-    main(n, z0, z1, txn_time, mining_time, simulation_until)
+    start_simulation(n, z0, z1, txn_time, mining_time, simulation_until)
 
 
