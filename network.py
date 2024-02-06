@@ -15,7 +15,7 @@ class Peer:
         self.is_low_cpu = is_low_cpu
         self.coins = 1000  # Initial coins
         self.neighbors = set()
-        self.txn_pool = list()
+        self.txn_pool = set()
 
     def add_neighbor(self, neighbor):
         self.neighbors.add(neighbor)
@@ -47,7 +47,7 @@ class Peer:
         amount = random.randint(1, self.coins) #NEED TO REMOVE SELF.COINS, THIS SHOULD COME FROM BLOCKCHAIN
 
         txn = Transaction(amount, self, receiver)
-        self.txn_pool.append(txn, "txn")
+        self.txn_pool.append(txn)
         # broadcast to neighbors
         self.broadcast(event_queue, txn, "txn")
         
@@ -71,7 +71,7 @@ class Peer:
             if(msg in self.txn_pool):
                 return
             
-            self.txn_pool.append(msg)
+            self.txn_pool.add(msg)
             self.broadcast(event_queue, msg, msg_type)
 
     def get_next_event_timestmp(self):
