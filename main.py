@@ -3,29 +3,9 @@ import argparse
 import numpy as np
 from constants import *
 from network import Network
-from queue import PriorityQueue
+from events import Event, EventQueue
 import time
 
-
-class EventQueue:
-    def __init__(self):
-        self.queue = PriorityQueue()
-    def push(self, event):
-        self.queue.put(event)
-    def pop(self):
-        return self.queue.get(block=False)
-
-class Event:
-    def __init__(self, time, peer, type):
-        self.time = time
-        self.peer = peer
-        self.type = type
-
-    def __lt__(self, other):
-        return self.time < other.time
-
-    def __str__(self):
-        return f"==Event(time {self.time}, peer {self.peer.peer_id}, type {self.type}=="
 
 def start_simulation(n, z0, z1, txn_time, mining_time, simulation_until):
     network = Network(n, z0, z1)
@@ -34,7 +14,9 @@ def start_simulation(n, z0, z1, txn_time, mining_time, simulation_until):
     event_queue = EventQueue()
     # push initial timestamps of every peer to the queue
     for peer in network.peers:
-        event_queue.push(Event(0, peer, "transaction"))
+        event_queue.push(Event(0, peer, "txn_generate"))
+        event_queue.push(Event(0, peer, "blk_mine"))
+
 
     current_time = 0
     while True:
@@ -51,10 +33,14 @@ def start_simulation(n, z0, z1, txn_time, mining_time, simulation_until):
         if event.time > simulation_until:
             print ("Simulation time is up")
             break
-        if event.type == "transaction":
-            # process transaction
-            print(f"Transaction event at time {event.time} for peer {event.peer.peer_id}")
-            pass
+        if event.type == "txn_generate":
+            peer = event.peer
+            peer.generate_transaction(event_queue, network.peers)
+            delay = np.random.exponential(txn_time) # time to wait before generating next txn
+            nxt_txn = Event(time.time() + delay, peer, "txn_generate")
+            event_queue.push(nxt_txn)
+            
+            # print(f"Transaction event at time {event.time} for peer {event.peer.peer_id}")
         elif event.type == "block":
             # process block
             print(f"Block event at time {event.time} for peer {event.peer.peer_id}")

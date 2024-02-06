@@ -3,6 +3,9 @@ import string
 import numpy as np
 from collections import deque
 from constants import *
+from transaction import Transaction
+from events import Event
+import time
 
 
 class Peer:
@@ -12,6 +15,7 @@ class Peer:
         self.is_low_cpu = is_low_cpu
         self.coins = 1000  # Initial coins
         self.neighbors = set()
+        self.txn_pool = list()
 
     def add_neighbor(self, neighbor):
         self.neighbors.add(neighbor)
@@ -23,7 +27,7 @@ class Peer:
     def get_neighbors(self):
         return list(self.neighbors)
     
-    def compute_delay(self, msg_size, receiver, prop_delay):
+    def compute_delay(self, msg_size, receiver):
         if(self.is_slow or receiver.is_slow):
             link_speed = SLOW_LINK_SPEED
         else:
@@ -32,19 +36,44 @@ class Peer:
         queueing_delay = np.random.exponential((float(96)) / (link_speed * 1024))
         transmission_delay = (msg_size * 8) / (link_speed * 1024)
 
-        total_delay = prop_delay + queueing_delay + transmission_delay
+        total_delay = PROP_DELAY + queueing_delay + transmission_delay
         return total_delay
 
-    def generate_transaction(self, peers):
-        txn_id = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+    def generate_transaction(self, event_queue, peers):
         receiver = random.choice(peers)
-        amount = random.randint(1, self.coins)
-        if amount <= self.coins:
-            self.coins -= amount
-            return f"TxnID: {txn_id}, {self.peer_id} pays {receiver.peer_id} {amount} coins"
-        else:
-            return None
-    
+        while(self.peer_id == receiver.peer_id):
+            receiver = random.choice(peers)
+
+        amount = random.randint(1, self.coins) #NEED TO REMOVE SELF.COINS, THIS SHOULD COME FROM BLOCKCHAIN
+
+        txn = Transaction(amount, self, receiver)
+        self.txn_pool.append(txn, "txn")
+        # broadcast to neighbors
+        self.broadcast(event_queue, txn, "txn")
+        
+    def send_msg(self, event_queue, sender, receiver, msg, msg_type):
+        if(msg_type == "txn"):
+            msg_size = TRANSACTION_SIZE
+        elif(msg_type == "block"):
+            msg_size = msg.size
+
+        delay = self.compute_delay(msg_size, receiver)
+        new_event = Event(time.time() + delay, receiver, "msg_rcv", data=msg)
+        event_queue.push(new_event)
+
+
+    def broadcast(self, event_queue, msg, msg_type):
+        for receiver in  self.neighbors:
+            self.send_msg(self, event_queue, receiver, msg, msg_type)
+
+    def receive_msg(self, event_queue, sender, msg, msg_type):
+        if(msg_type == "txn"):
+            if(msg in self.txn_pool):
+                return
+            
+            self.txn_pool.append(msg)
+            self.broadcast(event_queue, msg, msg_type)
+
     def get_next_event_timestmp(self):
         return random.expovariate(0.2)
         
@@ -54,7 +83,6 @@ class Network:
         self.n = n
         self.z0 = z0
         self.z1 = z1
-        self.prop_delay  = np.random.uniform(MIN_PROP_DELAY, MAX_PROP_DELAY) 
         self.peers = []
         self.neighbor_constraint = False
         self.connected_graph = False
