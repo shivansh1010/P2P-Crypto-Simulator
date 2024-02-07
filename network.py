@@ -16,6 +16,7 @@ class Peer:
         self.coins = 1000  # Initial coins
         self.neighbors = set()
         self.txn_pool = set()
+        self.hashing_power = 0
 
     def add_neighbor(self, neighbor):
         self.neighbors.add(neighbor)
@@ -86,26 +87,39 @@ class Network:
         self.peers = []
         self.neighbor_constraint = False
         self.connected_graph = False
+        self.slow_peers = 0
+        self.low_cpu_peers = 0
 
         self.create_peers()
         self.create_network_topology()
+        self.set_hashing_power()
 
     def create_peers(self):
-        slow_peers, low_cpu_peers = 0, 0
         for i in range(self.n):
             speed_threshold = np.random.uniform(0, 1)
             cpu_threshold = np.random.uniform(0, 1)
             is_slow = speed_threshold <= self.z0
             is_low_cpu = cpu_threshold <= self.z1
             if is_slow:
-                slow_peers += 1
+                self.slow_peers += 1
             if is_low_cpu:
-                low_cpu_peers += 1
+                self.low_cpu_peers += 1
             peer = Peer(i, is_slow, is_low_cpu)
             self.peers.append(peer)
 
-        fast_peers = self.n - slow_peers
-        high_cpu_peers = self.n - low_cpu_peers
+
+    def set_hashing_power(self):
+        high_cpu_peers = self.n - self.low_cpu_peers
+
+        low_hash_power = 1/(10*high_cpu_peers + self.low_cpu_peers)
+        high_hash_power = 10*low_hash_power
+
+        for peer in self.peers:
+            if peer.is_low_cpu:
+                peer.hashing_power = low_hash_power
+            else:
+                peer.hashing_power = high_hash_power
+
 
 
     def build_neighbors(self, peer):
