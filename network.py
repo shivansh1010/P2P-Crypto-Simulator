@@ -3,81 +3,11 @@ import string
 import numpy as np
 from collections import deque
 from constants import *
-from transaction import Transaction
-from events import Event
+# from transaction import Transaction
+from events import Event, EventQueue
+from peer import Peer
 import time
 
-
-class Peer:
-    def __init__(self, peer_id, is_slow, is_low_cpu):
-        self.peer_id = peer_id
-        self.is_slow = is_slow
-        self.is_low_cpu = is_low_cpu
-        self.coins = 1000  # Initial coins
-        self.neighbors = set()
-        self.txn_pool = set()
-        self.hashing_power = 0
-
-    def add_neighbor(self, neighbor):
-        self.neighbors.add(neighbor)
-
-    def remove_neighbor(self, neighbor):
-        if neighbor in self.neighbors:
-            self.neighbors.remove(neighbor)
-
-    def get_neighbors(self):
-        return list(self.neighbors)
-    
-    def compute_delay(self, msg_size, receiver):
-        if(self.is_slow or receiver.is_slow):
-            link_speed = SLOW_LINK_SPEED
-        else:
-            link_speed = FAST_LINK_SPEED
-
-        queueing_delay = np.random.exponential((float(96)) / (link_speed * 1024))
-        transmission_delay = (msg_size * 8) / (link_speed * 1024)
-
-        total_delay = PROP_DELAY + queueing_delay + transmission_delay
-        return total_delay
-
-    def generate_transaction(self, event_queue, peers):
-        receiver = random.choice(peers)
-        while(self.peer_id == receiver.peer_id):
-            receiver = random.choice(peers)
-
-        amount = random.randint(1, self.coins) #NEED TO REMOVE SELF.COINS, THIS SHOULD COME FROM BLOCKCHAIN
-
-        txn = Transaction(amount, self, receiver)
-        self.txn_pool.append(txn)
-        # broadcast to neighbors
-        self.broadcast(event_queue, txn, "txn")
-        
-    def send_msg(self, event_queue, sender, receiver, msg, msg_type):
-        if(msg_type == "txn"):
-            msg_size = TRANSACTION_SIZE
-        elif(msg_type == "block"):
-            msg_size = msg.size
-
-        delay = self.compute_delay(msg_size, receiver)
-        new_event = Event(time.time() + delay, receiver, "msg_rcv", data=msg)
-        event_queue.push(new_event)
-
-
-    def broadcast(self, event_queue, msg, msg_type):
-        for receiver in  self.neighbors:
-            self.send_msg(self, event_queue, receiver, msg, msg_type)
-
-    def receive_msg(self, event_queue, sender, msg, msg_type):
-        if(msg_type == "txn"):
-            if(msg in self.txn_pool):
-                return
-            
-            self.txn_pool.add(msg)
-            self.broadcast(event_queue, msg, msg_type)
-
-    def get_next_event_timestmp(self):
-        return random.expovariate(0.2)
-        
 
 class Network:
     def __init__(self, n, z0, z1):
@@ -94,6 +24,8 @@ class Network:
         self.create_network_topology()
         self.set_hashing_power()
 
+        self.event_queue = EventQueue()
+
     def create_peers(self):
         for i in range(self.n):
             speed_threshold = np.random.uniform(0, 1)
@@ -104,7 +36,7 @@ class Network:
                 self.slow_peers += 1
             if is_low_cpu:
                 self.low_cpu_peers += 1
-            peer = Peer(i, is_slow, is_low_cpu)
+            peer = Peer(i, is_slow, is_low_cpu, self)
             self.peers.append(peer)
 
 
@@ -179,6 +111,47 @@ class Network:
             neighbors = peer.get_neighbors()
             neighbor_ids = [neighbor.peer_id for neighbor in neighbors]
             print(f"Peer {peer.peer_id} is connected to: {neighbor_ids}")
+
+
+    def start_simulation(self, n, z0, z1, txn_time, mining_time, simulation_until):
+        # push initial timestamps of every peer to the queue
+
+        for peer in self.peers:
+            peer.transaction_create()
+            # self.event_queue.push(Event(0, peer, "blk_mine"))
+
+        current_time = 0
+        while True:
+            # get next event
+            if not self.event_queue.queue.empty():
+                event = self.event_queue.pop()
+            else:
+                print("No more events")
+                break
+
+            # print(event)
+            # time.sleep(event.time - current_time)
+            # process event
+            if event.time > simulation_until:
+                print ("Simulation time is up")
+                break
+            if event.type == "txn_generate":
+                peer = event.peer
+                
+                # print(f"Transaction event at time {event.time} for peer {event.peer.peer_id}")
+            elif event.type == "block":
+                # process block
+                print(f"Block event at time {event.time} for peer {event.peer.peer_id}")
+                pass
+            else:
+                print("Unknown event type")
+                break
+                
+            # add to event queue
+            self.event_queue.push(Event(event.time + event.peer.get_next_event_timestmp(), 
+                                event.peer, "transaction"))
+            current_time = event.time
+
 
 
 

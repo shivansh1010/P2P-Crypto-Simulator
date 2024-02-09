@@ -1,4 +1,5 @@
 from queue import PriorityQueue
+# from peer import Peer
 
 
 class EventQueue:
@@ -10,7 +11,7 @@ class EventQueue:
         return self.queue.get(block=False)
 
 class Event:
-    def __init__(self, time, peer, type, data):
+    def __init__(self, time, peer, type, data=None):
         self.time = time
         self.peer = peer
         self.type = type
