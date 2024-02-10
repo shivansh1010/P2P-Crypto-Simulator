@@ -2,6 +2,8 @@ from uuid import uuid4
 import time
 from hashlib import sha256
 
+from constants import *
+
 class Block:
     def __init__(self, prev_hash, miner_id):
         self.id = uuid4()
@@ -13,6 +15,7 @@ class Block:
         self.miner_id = miner_id
         self.hash = ""
         self.txn_hash = ""
+        self.mined_amount = 0
         self.balance = list()
 
     def block_Hash(self):
@@ -29,6 +32,13 @@ class Block:
         self.hash = sha256(block_content.encode()).hexdigest()
 
         return self.hash
+    
+    def add_txn(self, txn):
+        if(len(self.txns) >= self.size-1):
+            print("Block is full")
+        else:
+            self.txns.add(txn)
+            self.mined_amount += TXN_FEE
         
 
 class GenesisBlock:
