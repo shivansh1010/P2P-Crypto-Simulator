@@ -15,6 +15,22 @@ class Block:
         self.txn_hash = ""
         self.balance = list()
 
+    def hash(self):
+        if self.hash != "":
+            return self.hash
+        
+        if self.txn_hash == "":
+            txns_string = ""
+            for txn in self.txns:
+                txns_string += str(txn) 
+            self.txn_hash = sha256(txns_string.encode()).hexdigest()  
+        
+        block_content = str(self.id) + self.prev_hash + self.txn_hash
+        self.hash = sha256(block_content.encode()).hexdigest()
+
+        return self.hash
+        
+
 class GenesisBlock:
     def __init__(self, n):
         self.id = uuid4()
