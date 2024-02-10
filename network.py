@@ -25,6 +25,7 @@ class Network:
         self.set_hashing_power()
 
         self.event_queue = EventQueue()
+        self.time = 0
 
     def create_peers(self):
         for i in range(self.n):
@@ -120,9 +121,9 @@ class Network:
             peer.transaction_create()
             # self.event_queue.push(Event(0, peer, "blk_mine"))
 
-        current_time = 0
         while True:
             # get next event
+            # self.event_queue.print()
             if not self.event_queue.queue.empty():
                 event = self.event_queue.pop()
             else:
@@ -135,22 +136,28 @@ class Network:
             if event.time > simulation_until:
                 print ("Simulation time is up")
                 break
-            if event.type == "txn_generate":
-                peer = event.peer
+
+            print(str(event))
+
+            if event.type == "txn_create":
+                event.receiver.transaction_create_handler(event.data, event.sender)
+            elif event.type == "txn_recv":
+                event.receiver.transaction_receive_handler(event.data, event.sender)
                 
-                # print(f"Transaction event at time {event.time} for peer {event.peer.peer_id}")
             elif event.type == "block":
                 # process block
-                print(f"Block event at time {event.time} for peer {event.peer.peer_id}")
+                print(f"Block event at time {event.time} for peer {event.receiver.peer_id}")
                 pass
             else:
                 print("Unknown event type")
                 break
                 
             # add to event queue
-            self.event_queue.push(Event(event.time + event.peer.get_next_event_timestmp(), 
-                                event.peer, "transaction"))
-            current_time = event.time
+            # self.event_queue.push(Event(event.time + event.peer.get_next_event_timestmp(), 
+            #                     event.peer, "transaction"))
+            self.time = event.time
+
+        print(f"Events in eventqueue: {self.event_queue.queue.qsize()}")
 
 
 

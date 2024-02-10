@@ -9,11 +9,14 @@ class EventQueue:
         self.queue.put(event)
     def pop(self):
         return self.queue.get(block=False)
+    def print(self):
+        print(self.queue)
 
 class Event:
-    def __init__(self, time, peer, type, data=None):
+    def __init__(self, time, sender, receiver, type, data=None):
         self.time = time
-        self.peer = peer
+        self.sender = sender
+        self.receiver = receiver
         self.type = type
         self.data = data
 
@@ -21,4 +24,4 @@ class Event:
         return self.time < other.time
 
     def __str__(self):
-        return f"==Event(time {self.time}, peer {self.peer.peer_id}, type {self.type}=="
+        return f" Event -> time {round(self.time, 4)} sender {self.sender.peer_id} receiver {self.receiver.id} type {self.type}"

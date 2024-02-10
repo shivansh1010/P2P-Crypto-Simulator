@@ -36,10 +36,10 @@ class Peer:
         else:
             link_speed = FAST_LINK_SPEED
 
-        queueing_delay = np.random.exponential((float(96)) / (link_speed * 1024))
         transmission_delay = (msg_size * 8) / (link_speed * 1024)
+        queueing_delay = np.random.exponential((float(96)) / (link_speed * 1024))
 
-        total_delay = PROP_DELAY + queueing_delay + transmission_delay
+        total_delay = PROP_DELAY + transmission_delay + queueing_delay
         return total_delay
 
     def transaction_create(self):
@@ -50,9 +50,9 @@ class Peer:
         amount = round(random.uniform(0, self.get_amount(self)), 6)
         # time to wait before generating next txn
         # delay = np.random.exponential(self.simulator.txn_time)
-        timestamp = time.time()
+        timestamp = self.network.time + random.expovariate(10) #self.get_next_event_timestmp()
         txn = Transaction(timestamp, amount, self, receiver)
-        self.network.event_queue.push(Event(txn.timestamp, self, "txn_create", data=txn))
+        self.network.event_queue.push(Event(txn.timestamp, self, self, "txn_create", data=txn))
 
     def transaction_create_handler(self, txn, source_node):
         """method to handle txn create event"""
@@ -62,6 +62,8 @@ class Peer:
 
     def transaction_receive_handler(self, txn, source_node):
         """method to handle txn receive event"""
+        if txn in self.txn_pool:
+            return
         self.txn_pool.add(txn)
         self.transaction_broadcast(txn, source_node)
 
@@ -71,7 +73,7 @@ class Peer:
             if source_node and node.peer_id == source_node.peer_id:
                 continue
             delay = self.compute_delay(TRANSACTION_SIZE, node)
-            self.network.event_queue.push(Event(txn.timestamp + delay, node, "txn_recv", data=txn))
+            self.network.event_queue.push(Event(txn.timestamp + delay, self, node, "txn_recv", data=txn))
 
 
     def get_amount(self, peer):
@@ -86,7 +88,7 @@ class Peer:
             msg_size = msg.size
 
         delay = self.compute_delay(msg_size, receiver)
-        new_event = Event(time.time() + delay, receiver, "msg_rcv", data=msg)
+        new_event = Event(time.time() + delay, self, receiver, "msg_rcv", data=msg)
         event_queue.push(new_event)
 
 
@@ -102,6 +104,3 @@ class Peer:
             self.txn_pool.add(msg)
             self.broadcast(event_queue, msg, msg_type)
 
-    def get_next_event_timestmp(self):
-        return random.expovariate(0.2)
-        
