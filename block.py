@@ -15,7 +15,7 @@ class Block:
         self.txn_hash = ""
         self.balance = list()
 
-    def blockHash(self):
+    def block_Hash(self):
         if self.hash != "":
             return self.hash
         
@@ -38,5 +38,5 @@ class GenesisBlock:
         self.timestamp = time.time()
         self.balance = [1000]*n
 
-    def get_hash(self):
+    def block_hash(self):
         return sha256(str(self.id).encode()).hexdigest()
