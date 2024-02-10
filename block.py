@@ -15,7 +15,7 @@ class Block:
         self.txn_hash = ""
         self.balance = list()
 
-    def hash(self):
+    def blockHash(self):
         if self.hash != "":
             return self.hash
         
