@@ -8,10 +8,10 @@ from events import Event
 import time
 
 
-class Peer:
-    def __init__(self, peer_id, is_slow, is_low_cpu, network):
-        self.id = peer_id
-        self.peer_id = peer_id
+class Node:
+    def __init__(self, id, is_slow, is_low_cpu, network):
+        self.id = id
+        self.id = id
         self.is_slow = is_slow
         self.is_low_cpu = is_low_cpu
         self.coins = 1000
@@ -45,7 +45,7 @@ class Peer:
     def transaction_create(self):
         """method to create future txn"""
         receiver = random.choice(self.get_neighbors())
-        while self.peer_id == receiver.peer_id:
+        while self.id == receiver.id:
             receiver = random.choice(self.get_neighbors())
         amount = round(random.uniform(0, self.get_amount(self)), 6)
         # time to wait before generating next txn
@@ -70,15 +70,15 @@ class Peer:
     def transaction_broadcast(self, txn, source_node=None):
         """ broadcast fuction """
         for node in self.get_neighbors():
-            if source_node and node.peer_id == source_node.peer_id:
+            if source_node and node.id == source_node.id:
                 continue
             delay = self.compute_delay(TRANSACTION_SIZE, node)
             self.network.event_queue.push(Event(txn.timestamp + delay, self, node, "txn_recv", data=txn))
 
 
-    def get_amount(self, peer):
-        """return balance of peer, obtained from traversing blockchain"""
-        return peer.coins
+    def get_amount(self, node):
+        """return balance of node, obtained from traversing blockchain"""
+        return node.coins
 
 
     def send_msg(self, event_queue, sender, receiver, msg, msg_type):

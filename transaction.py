@@ -1,6 +1,6 @@
 from constants import *
 from uuid import uuid4
-# from peer import Peer
+# from node import Node
 
 class Transaction:
     def __init__(self, ts, amount, sender, receiver):

@@ -1,5 +1,5 @@
 from queue import PriorityQueue
-# from peer import Peer
+# from node import Node
 
 
 class EventQueue:
@@ -24,4 +24,4 @@ class Event:
         return self.time < other.time
 
     def __str__(self):
-        return f" Event -> time {round(self.time, 4)} sender {self.sender.peer_id} receiver {self.receiver.id} type {self.type}"
+        return f" Event -> time {round(self.time, 4)} sender {self.sender.id} receiver {self.receiver.id} type {self.type}"

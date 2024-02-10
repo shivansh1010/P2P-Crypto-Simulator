@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "main.py",
             "console": "integratedTerminal",
-            "args": "10 0.2 4 5 40"
+            "args": "config.ini"
         }
     ]
 }
