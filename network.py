@@ -35,7 +35,7 @@ class Network:
             self.max_neighbors = int(config['node']['max_neighbors'])
             
             # transaction
-            self.size = int(config['transaction']['size'])
+            self.transaction_size = int(config['transaction']['size'])
             self.mean_interarrival_time_sec = int(config['transaction']['mean_interarrival_time_sec'])
             
             # network
@@ -44,10 +44,12 @@ class Network:
             self.slow_node_link_speed = int(config['network']['slow_node_link_speed'])
             self.fast_node_link_speed = int(config['network']['fast_node_link_speed'])
             self.queuing_delay_constant = int(config['network']['queuing_delay_constant'])
-            
+
         else:
             print("Unknown config type")
-            return
+
+        # derived
+        self.prop_delay = random.uniform(self.min_light_prop_delay, self.max_light_prop_delay)
 
 
     def show_parameters(self):
@@ -57,7 +59,7 @@ class Network:
         print(f" Low cpu nodes percent: {self.percent_low_cpu_nodes}")
         print(f" Min neighbors: {self.min_neighbors}")
         print(f" Max neighbors: {self.max_neighbors}")
-        print(f" Transaction size: {self.size}")
+        print(f" Transaction size: {self.transaction_size}")
         print(f" Mean interarrival time: {self.mean_interarrival_time_sec}")
         print(f" Min light prop delay: {self.min_light_prop_delay}")
         print(f" Max light prop delay: {self.max_light_prop_delay}")
@@ -188,14 +190,15 @@ class Network:
             if event.time > self.execution_time:
 
                 print ("Simulation time is up")
-                # break
+                break
 
-            print(str(event))
 
             if event.type == "txn_create":
                 event.receiver.transaction_create_handler(event.data, event.sender)
+                print(str(event))
             elif event.type == "txn_recv":
                 event.receiver.transaction_receive_handler(event.data, event.sender)
+                # print(str(event))
             # elif event.type == "block":
             #     # process block
             #     print(f"Block event at time {event.time} for node {event.receiver.id}")

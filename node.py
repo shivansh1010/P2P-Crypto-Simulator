@@ -11,7 +11,6 @@ import time
 class Node:
     def __init__(self, id, is_slow, is_low_cpu, network):
         self.id = id
-        self.id = id
         self.is_slow = is_slow
         self.is_low_cpu = is_low_cpu
         self.coins = 1000
@@ -30,17 +29,17 @@ class Node:
     def get_neighbors(self):
         return list(self.neighbors)
     
+
     def compute_delay(self, msg_size, receiver):
         if(self.is_slow or receiver.is_slow):
-            link_speed = SLOW_LINK_SPEED
+            link_speed = self.network.slow_node_link_speed
         else:
-            link_speed = FAST_LINK_SPEED
+            link_speed = self.network.fast_node_link_speed
 
         transmission_delay = (msg_size * 8) / (link_speed * 1024)
-        queueing_delay = np.random.exponential((float(96)) / (link_speed * 1024))
+        queueing_delay = np.random.exponential((float(self.network.queuing_delay_constant)) / (link_speed * 1024))
 
-        total_delay = PROP_DELAY + transmission_delay + queueing_delay
-        return total_delay
+        return self.network.prop_delay + transmission_delay + queueing_delay
 
     def transaction_create(self):
         """method to create future txn"""
@@ -50,9 +49,9 @@ class Node:
         amount = round(random.uniform(0, self.get_amount(self)), 6)
         # time to wait before generating next txn
         # delay = np.random.exponential(self.simulator.txn_time)
-        timestamp = self.network.time + random.expovariate(10) #self.get_next_event_timestmp()
+        timestamp = self.network.time + np.random.exponential(self.network.mean_interarrival_time_sec)
         txn = Transaction(timestamp, amount, self, receiver)
-        self.network.event_queue.push(Event(txn.timestamp, self, self, "txn_create", data=txn))
+        self.network.event_queue.push(Event(timestamp, self, self, "txn_create", data=txn))
 
     def transaction_create_handler(self, txn, source_node):
         """method to handle txn create event"""
@@ -70,9 +69,10 @@ class Node:
     def transaction_broadcast(self, txn, source_node=None):
         """ broadcast fuction """
         for node in self.get_neighbors():
+            # dont send back to the node from which txn came
             if source_node and node.id == source_node.id:
                 continue
-            delay = self.compute_delay(TRANSACTION_SIZE, node)
+            delay = self.compute_delay(self.network.transaction_size, node)
             self.network.event_queue.push(Event(txn.timestamp + delay, self, node, "txn_recv", data=txn))
 
 
