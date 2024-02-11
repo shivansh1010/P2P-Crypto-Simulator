@@ -78,29 +78,56 @@ class Node:
 
     def get_amount(self, node):
         """return balance of node, obtained from traversing blockchain"""
+        # TODO: obtain from traversing blockchain
         return node.coins
+    
+    def is_transaction_valid(self, txn):
+        """method to check if txn is valid"""
+        return True
 
 
-    def send_msg(self, event_queue, sender, receiver, msg, msg_type):
-        if(msg_type == "txn"):
-            msg_size = TRANSACTION_SIZE
-        elif(msg_type == "block"):
-            msg_size = msg.size
+    # def send_msg(self, event_queue, sender, receiver, msg, msg_type):
+    #     if(msg_type == "txn"):
+    #         msg_size = TRANSACTION_SIZE
+    #     elif(msg_type == "block"):
+    #         msg_size = msg.size
 
-        delay = self.compute_delay(msg_size, receiver)
-        new_event = Event(time.time() + delay, self, receiver, "msg_rcv", data=msg)
-        event_queue.push(new_event)
+    #     delay = self.compute_delay(msg_size, receiver)
+    #     new_event = Event(time.time() + delay, self, receiver, "msg_rcv", data=msg)
+    #     event_queue.push(new_event)
 
 
-    def broadcast(self, event_queue, msg, msg_type):
-        for receiver in  self.neighbors:
-            self.send_msg(self, event_queue, receiver, msg, msg_type)
+    # def broadcast(self, event_queue, msg, msg_type):
+    #     for receiver in  self.neighbors:
+    #         self.send_msg(self, event_queue, receiver, msg, msg_type)
 
-    def receive_msg(self, event_queue, sender, msg, msg_type):
-        if(msg_type == "txn"):
-            if(msg in self.txn_pool):
-                return
+    # def receive_msg(self, event_queue, sender, msg, msg_type):
+    #     if(msg_type == "txn"):
+    #         if(msg in self.txn_pool):
+    #             return
             
-            self.txn_pool.add(msg)
-            self.broadcast(event_queue, msg, msg_type)
+    #         self.txn_pool.add(msg)
+    #         self.broadcast(event_queue, msg, msg_type)
 
+
+    def block_create(self):
+        """method to create FUTURE block"""
+        # take current timestamp from "self.network.time"
+        # do something
+
+    def block_create_handler(self, block, source_node):
+        """method to handle block create event"""
+        # do something
+        self.block_create()
+
+    def block_receive_handler(self, block, source_node):
+        """method to handle block receive event"""
+        # do something
+
+    def is_block_valid(self, block):
+        """method to check if block is valid"""
+        # do something
+
+    def block_broadcast(self, block, source_node=None):
+        """method to broadcast block"""
+        # do something
