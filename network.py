@@ -20,6 +20,8 @@ class Network:
         self.connected_graph = False
         self.num_slow_nodes = 0
         self.num_low_cpu_nodes = 0
+        self.time = 0
+        self.event_queue = None
 
         if type == 'toml':
             #simulation
@@ -88,16 +90,30 @@ class Network:
             self.nodes.append(node)
 
 
-    def set_hashing_power(self):
-        high_cpu_nodes = self.total_nodes - self.num_low_cpu_nodes
-        low_hash_power = 1/(10*high_cpu_nodes + self.num_low_cpu_nodes)
-        high_hash_power = 10*low_hash_power
+    def create_network_topology(self):
+        print("Building network... \n")
+        while not (self.connected_graph and self.neighbor_constraint):
+            self.reset_network()
 
+            for node in self.nodes:
+                self.build_neighbors(node)
+
+            if not (self.neighbor_constraint):
+                print("Not every node has 3-6 neighbors, rebuilding... \n")
+                continue
+
+            self.connected_graph = self.is_connected_graph()
+            if not (self.connected_graph):
+                print("Network topology not connected, rebuilding... \n")
+
+        print("Network created \n")
+
+
+    def reset_network(self):
         for node in self.nodes:
-            if node.is_low_cpu:
-                node.hashing_power = low_hash_power
-            else:
-                node.hashing_power = high_hash_power
+            node.neighbors.clear()
+        self.neighbor_constraint = False
+        self.connected_graph = False
 
 
     def build_neighbors(self, node):
@@ -118,32 +134,6 @@ class Network:
         self.neighbor_constraint = True
     
 
-    def reset_network(self):
-        for node in self.nodes:
-            node.neighbors.clear()
-        self.neighbor_constraint = False
-        self.connected_graph = False
-
-
-    def create_network_topology(self):
-        print("Building network... \n")
-        while not (self.connected_graph and self.neighbor_constraint):
-            self.reset_network()
-
-            for node in self.nodes:
-                self.build_neighbors(node)
-
-            if not (self.neighbor_constraint):
-                print("Not every node has 3-6 neighbors, rebuilding... \n")
-                continue
-
-            self.connected_graph = self.is_connected_graph()
-            if not (self.connected_graph):
-                print("Network topology not connected, rebuilding... \n")
-
-        print("Network created \n")
-
-
     def is_connected_graph(self):
         visited = set()
         queue = deque([self.nodes[0]]) 
@@ -155,6 +145,18 @@ class Network:
                     queue.append(neighbor)
         return len(visited) == len(self.nodes)
     
+
+    def set_hashing_power(self):
+        high_cpu_nodes = self.total_nodes - self.num_low_cpu_nodes
+        low_hash_power = 1/(10*high_cpu_nodes + self.num_low_cpu_nodes)
+        high_hash_power = 10*low_hash_power
+
+        for node in self.nodes:
+            if node.is_low_cpu:
+                node.hashing_power = low_hash_power
+            else:
+                node.hashing_power = high_hash_power
+
 
     def display_network(self):
         for node in self.nodes:
@@ -179,12 +181,14 @@ class Network:
                 print("No more events")
                 break
 
+            self.time = event.time
             # print(event)
             # time.sleep(event.time - current_time)
             # process event
             if event.time > self.execution_time:
+
                 print ("Simulation time is up")
-                break
+                # break
 
             print(str(event))
 
@@ -192,19 +196,12 @@ class Network:
                 event.receiver.transaction_create_handler(event.data, event.sender)
             elif event.type == "txn_recv":
                 event.receiver.transaction_receive_handler(event.data, event.sender)
-                
-            elif event.type == "block":
-                # process block
-                print(f"Block event at time {event.time} for node {event.receiver.id}")
-                pass
+            # elif event.type == "block":
+            #     # process block
+            #     print(f"Block event at time {event.time} for node {event.receiver.id}")
             else:
                 print("Unknown event type")
                 break
-                
-            # add to event queue
-            # self.event_queue.push(Event(event.time + event.node.get_next_event_timestmp(), 
-            #                     event.node, "transaction"))
-            self.time = event.time
 
         print(f"Events in eventqueue: {self.event_queue.queue.qsize()}")
 
