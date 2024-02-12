@@ -45,6 +45,9 @@ class Network:
             self.fast_node_link_speed = int(config['network']['fast_node_link_speed'])
             self.queuing_delay_constant = int(config['network']['queuing_delay_constant'])
 
+            # mining
+            self.mean_mining_time_sec = int(config['mining']['mean_mining_time_sec'])
+
         else:
             print("Unknown config type")
 
@@ -66,6 +69,7 @@ class Network:
         print(f" Slow node link speed: {self.slow_node_link_speed}")
         print(f" Fast node link speed: {self.fast_node_link_speed}")
         print(f" Queuing delay constant: {self.queuing_delay_constant}")
+        print(f" Mean mining time: {self.mean_mining_time_sec}")
         
 
     def prepare_simulation(self):
@@ -199,6 +203,12 @@ class Network:
                 print(str(event))
             elif event.type == "txn_recv":
                 event.receiver.transaction_receive_handler(event.data, event.sender)
+                # print(str(event))
+            elif event.type == "blk_create":
+                event.receiver.block_create_handler(event.data, event.sender)
+                print(str(event))
+            elif event.type == "blk_recv":
+                event.receiver.block_receive_handler(event.data, event.sender)
                 # print(str(event))
             # elif event.type == "block":
             #     # process block

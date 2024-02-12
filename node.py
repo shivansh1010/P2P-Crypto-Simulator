@@ -5,6 +5,7 @@ from collections import deque
 from constants import *
 from transaction import Transaction
 from events import Event
+from block import Block
 import time
 
 
@@ -113,11 +114,21 @@ class Node:
     def block_create(self):
         """method to create FUTURE block"""
         # take current timestamp from "self.network.time"
-        # do something
+        txns_to_include = []
+        prev_hash = ''
+        timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec)
+        block = Block(timestamp, '', self.id)
+        # check if the block is valid
+        self.network.event_queue.push(
+            Event(timestamp, self, self, "blk_create", data=block)
+        )
 
     def block_create_handler(self, block, source_node):
         """method to handle block create event"""
-        # do something
+        # do some checks
+        for txn in list(block.txns)[1:]: # not to include reward txn
+            self.txn_pool.remove(txn)
+        self.block_broadcast(block, source_node)
         self.block_create()
 
     def block_receive_handler(self, block, source_node):
@@ -130,4 +141,8 @@ class Node:
 
     def block_broadcast(self, block, source_node=None):
         """method to broadcast block"""
-        # do something
+        for node in self.get_neighbors():
+            if source_node and node.id == source_node.id:
+                continue
+            delay = 0 #self.compute_delay(self.network.block_size, node)
+            self.network.event_queue.push(Event(self.network.time + delay, self, node, "blk_recv", data=block))
