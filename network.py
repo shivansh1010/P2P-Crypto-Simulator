@@ -172,6 +172,7 @@ class Network:
 
         for node in self.nodes:
             node.transaction_create()
+            node.block_create()
             # self.event_queue.push(Event(0, node, "blk_mine"))
 
         while True:
