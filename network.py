@@ -77,6 +77,7 @@ class Network:
         self.create_nodes()
         self.create_network_topology()
         self.set_hashing_power()
+        self.set_initial_balance()
 
         self.event_queue = EventQueue()
         self.time = 0
@@ -170,6 +171,11 @@ class Network:
             neighbors = node.get_neighbors()
             neighbor_ids = [neighbor.id for neighbor in neighbors]
             print(f"Node {node.id} is connected to: {neighbor_ids}")
+
+    def set_initial_balance(self):
+        for node in self.nodes:
+            for other_node in self.nodes:
+                node.balances[other_node] = self.node_starting_balance
 
 
     def start_simulation(self):

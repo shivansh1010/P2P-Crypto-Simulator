@@ -19,11 +19,9 @@ class Node:
         self.txn_pool = set()
         self.hashing_power = 0
         self.network = network
-
-        balances = {}
-        for node in self.network.nodes:
-            balances[node] = self.network.node_starting_balance
-        self.genesis_block = Block(self.network.time, -1, -1, balances)
+        self.balances = {} # Node -> Balance
+     
+        self.genesis_block = Block(self.network.time, -1, -1)
 
         self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
         self.block_registry = {self.genesis_block.hash: self.genesis_block} # Hash -> Block
@@ -150,7 +148,9 @@ class Node:
         """method to check if block is valid"""
         last_block_hash = self.blockchain_leaves[-1]
         last_block = self.block_registry[last_block_hash]
-        true_balances = last_block.balances
+        # true_balances = last_block.balances.copy()
+
+        true_balances = self.balances.copy()
 
         # Validate Previous Hash
         # if(block.prev_hash != last_block_hash):
