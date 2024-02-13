@@ -16,7 +16,7 @@ class Block:
         self.txn_hash = ""
         self.hash = self.block_Hash()
         self.mined_amount = 0
-    
+        self.level = 0
 
     def block_Hash(self):
         txns_string = ""

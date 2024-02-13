@@ -118,26 +118,65 @@ class Node:
         """method to handle block receive event"""
         if self.id == source_node.id:
             return
-        # do something
+        
+        last_block_hash = self.blockchain_leaves[-1]
+        last_block = self.block_registry[last_block_hash]
+
+        prev_blk_hash = block.prev_hash
+        prev_blk = self.block_registry[prev_blk_hash]
+
+        # Validate Block
+        if not self.is_block_valid(block):
+            return
+        
+        # Add to block registry
+        self.block_registry[block.hash] = block
+
+        # Find the longest chain and add the block accordingly
+        if prev_blk_hash == last_block_hash:
+            self.blockchain_leaves[-1] = block.hash
+
+        elif block.level >= last_block.level:
+            self.blockchain_leaves.append(block.hash)
+            # TODO: This needs to be changed. 
+            # Need to find the prev_block in blockchain_leaves and replace with this block,
+            # Otherwise append
+
+        # Broadcast Block
+        self.block_broadcast(block, self)
+       
 
     def is_block_valid(self, block):
         """method to check if block is valid"""
-        last_block_hash = self.blockchain_leaves[-1]
-        last_block = self.block_registry[last_block_hash]
+        # last_block_hash = self.blockchain_leaves[-1]
+        # last_block = self.block_registry[last_block_hash]
         # true_balances = last_block.balances.copy()
 
         true_balances = self.balances.copy()
 
         # Validate Previous Hash
-        # if(block.prev_hash != last_block_hash):
-        #     print(f"Invalid Block: Previous hash mismatch: {block.id}")
-        #     return False
+        if block.prev_hash not in self.blockchain_leaves:
+            print(f"Invalid Block: Previous hash mismatch: {block.id}")
+            return False
+        
+        # Validate Previous Block Level
+        prev_blk_hash = block.prev_hash
+        prev_blk = self.block_registry[prev_blk_hash]
+        if prev_blk.level + 1 != block.level:
+            print(f"Invalid Block: Invalid Index {block.id}")
+            return False
         
         # Validate Hash
         if(block.hash != block.block_Hash()):
             print(f"Invalid Block: Hash mismatch {block.id}")
             return False
 
+        # Validate Coinbase Transaction
+        coinbase_txn = block.txns[0]
+        if coinbase_txn.amount >= 50: # Max Mining Reward
+            print(f"Invalid Trnsaction: Mining fee more than maximum mining fee, {coinbase_txn}")
+            return False
+        
         # Validate Transactions
         for txn in block.txns[1:]:
             sender = txn.sender_id
@@ -148,12 +187,15 @@ class Node:
             
             true_balances[sender] -= txn.amount
             true_balances[receiver] += txn.amount
+
+        # Block Valid, Update the balances
+        self.balances = true_balances
         
-        # Validate Balances
-        for node, balance in block.balances.items():
-            if(true_balances[node]!=balance):
-                print(f"Invalid Block: Wrong Balance of node {node.id}")
-                return False
+        # # Validate Balances
+        # for node, balance in block.balances.items():
+        #     if(true_balances[node]!=balance):
+        #         print(f"Invalid Block: Wrong Balance of node {node.id}")
+        #         return False
         
         return True
             
