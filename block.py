@@ -5,7 +5,7 @@ from hashlib import sha256
 from constants import *
 
 class Block:
-    def __init__(self, timestamp, prev_hash, miner_id, transactions, balances):
+    def __init__(self, timestamp, prev_hash, miner_id, transactions):
         self.id = uuid4()
         self.type = "normal"
         self.timestamp = timestamp
@@ -24,7 +24,7 @@ class Block:
             txns_string += str(txn) 
         self.txn_hash = sha256(txns_string.encode()).hexdigest()  
         
-        block_content = str(self.id) + self.prev_hash + self.txn_hash
+        block_content = str(self.id) + str(self.prev_hash) + self.txn_hash
         self.hash = sha256(block_content.encode()).hexdigest()
 
         return self.hash

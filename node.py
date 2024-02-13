@@ -21,7 +21,7 @@ class Node:
         self.network = network
         self.balances = {} # Node -> Balance
      
-        self.genesis_block = Block(self.network.time, -1, -1)
+        self.genesis_block = Block(self.network.time, -1, -1, [])
 
         self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
         self.block_registry = {self.genesis_block.hash: self.genesis_block} # Hash -> Block
@@ -50,21 +50,20 @@ class Node:
         return self.network.prop_delay + transmission_delay + queueing_delay
 
     def transaction_create(self):
-        """method to create future txn"""
+        """method to add an txn_create event in the FUTURE"""
+        event_timestamp = self.network.time + np.random.exponential(self.network.mean_interarrival_time_sec)
+        self.network.event_queue.push(Event(event_timestamp, self, self, "txn_create", data=None))
+
+    def transaction_create_handler(self, event_timestamp):
+        """method to create a txn and handle it"""
         receiver = random.choice(self.get_neighbors())
         while self.id == receiver.id:
             receiver = random.choice(self.get_neighbors())
         amount = round(random.uniform(0, self.get_amount(self)), 6)
-        # time to wait before generating next txn
-        # delay = np.random.exponential(self.simulator.txn_time)
-        timestamp = self.network.time + np.random.exponential(self.network.mean_interarrival_time_sec)
-        txn = Transaction(timestamp, amount, self, receiver)
-        self.network.event_queue.push(Event(timestamp, self, self, "txn_create", data=txn))
+        txn = Transaction(event_timestamp, amount, self, receiver)
 
-    def transaction_create_handler(self, txn, source_node):
-        """method to handle txn create event"""
         self.txn_pool.add(txn)
-        self.transaction_broadcast(txn, source_node)
+        self.transaction_broadcast(txn)
         self.transaction_create()
 
     def transaction_receive_handler(self, txn, source_node):
@@ -75,7 +74,7 @@ class Node:
         self.transaction_broadcast(txn, source_node)
 
     def transaction_broadcast(self, txn, source_node=None):
-        """ broadcast fuction """
+        """ broadcast fuction. Broadcast txn to all neighbours, except the node from which it came from"""
         for node in self.get_neighbors():
             # dont send back to the node from which txn came
             if source_node and node.id == source_node.id:
@@ -94,48 +93,25 @@ class Node:
         return True
 
 
-    # def send_msg(self, event_queue, sender, receiver, msg, msg_type):
-    #     if(msg_type == "txn"):
-    #         msg_size = TRANSACTION_SIZE
-    #     elif(msg_type == "block"):
-    #         msg_size = msg.size
-
-    #     delay = self.compute_delay(msg_size, receiver)
-    #     new_event = Event(time.time() + delay, self, receiver, "msg_rcv", data=msg)
-    #     event_queue.push(new_event)
-
-
-    # def broadcast(self, event_queue, msg, msg_type):
-    #     for receiver in  self.neighbors:
-    #         self.send_msg(self, event_queue, receiver, msg, msg_type)
-
-    # def receive_msg(self, event_queue, sender, msg, msg_type):
-    #     if(msg_type == "txn"):
-    #         if(msg in self.txn_pool):
-    #             return
-            
-    #         self.txn_pool.add(msg)
-    #         self.broadcast(event_queue, msg, msg_type)
 
 
     def block_create(self):
-        """method to create FUTURE block"""
-        # take current timestamp from "self.network.time"
-        txns_to_include = []
-        prev_hash = ''
+        """method to add an blk_create event in the FUTURE"""
+
         timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec)
-        block = Block(timestamp, '', self.id)
-        # check if the block is valid
         self.network.event_queue.push(
-            Event(timestamp, self, self, "blk_create", data=block)
+            Event(timestamp, self, self, "blk_create", data=None)
         )
 
-    def block_create_handler(self, block, source_node):
-        """method to handle block create event"""
-        # do some checks
-        for txn in list(block.txns)[1:]: # not to include reward txn
+    def block_create_handler(self, event_timestamp):
+        """method to create a block and handle it"""
+        txns_to_include = []
+        prev_hash = ''
+        block = Block(event_timestamp, -1, -1, [])
+
+        for txn in list(block.txns)[1:]:
             self.txn_pool.remove(txn)
-        self.block_broadcast(block, source_node)
+        self.block_broadcast(block)
         self.block_create()
 
     def block_receive_handler(self, block, source_node):

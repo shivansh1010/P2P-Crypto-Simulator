@@ -200,26 +200,21 @@ class Network:
             # time.sleep(event.time - current_time)
             # process event
             if event.time > self.execution_time:
-
                 print ("Simulation time is up")
                 break
 
-
             if event.type == "txn_create":
-                event.receiver.transaction_create_handler(event.data, event.sender)
+                event.receiver.transaction_create_handler(event.time)
                 print(str(event))
             elif event.type == "txn_recv":
                 event.receiver.transaction_receive_handler(event.data, event.sender)
                 # print(str(event))
             elif event.type == "blk_create":
-                event.receiver.block_create_handler(event.data, event.sender)
+                event.receiver.block_create_handler(event.time)
                 print(str(event))
             elif event.type == "blk_recv":
                 event.receiver.block_receive_handler(event.data, event.sender)
                 # print(str(event))
-            # elif event.type == "block":
-            #     # process block
-            #     print(f"Block event at time {event.time} for node {event.receiver.id}")
             else:
                 print("Unknown event type")
                 break
