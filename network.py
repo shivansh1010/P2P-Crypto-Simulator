@@ -33,6 +33,7 @@ class Network:
             #node
             self.min_neighbors = int(config['node']['min_neighbors'])
             self.max_neighbors = int(config['node']['max_neighbors'])
+            self.node_starting_balance = config['node']['node_starting_balance']
             
             # transaction
             self.transaction_size = int(config['transaction']['size'])

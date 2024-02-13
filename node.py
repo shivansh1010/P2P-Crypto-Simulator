@@ -5,7 +5,7 @@ from collections import deque
 from constants import *
 from transaction import Transaction
 from events import Event
-from block import Block
+from block import Block, GenesisBlock
 import time
 
 
@@ -19,6 +19,15 @@ class Node:
         self.txn_pool = set()
         self.hashing_power = 0
         self.network = network
+
+        balances = {}
+        for node in self.network.nodes:
+            balances[node] = self.network.node_starting_balance
+        self.genesis_block = Block(self.network.time, -1, -1, balances)
+
+        self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
+        self.block_registry = {self.genesis_block.hash: self.genesis_block} # Hash -> Block
+        
 
     def add_neighbor(self, neighbor):
         self.neighbors.add(neighbor)
@@ -133,11 +142,45 @@ class Node:
 
     def block_receive_handler(self, block, source_node):
         """method to handle block receive event"""
+        if self.id == source_node.id:
+            return
         # do something
 
     def is_block_valid(self, block):
         """method to check if block is valid"""
-        # do something
+        last_block_hash = self.blockchain_leaves[-1]
+        last_block = self.block_registry[last_block_hash]
+        true_balances = last_block.balances
+
+        # Validate Previous Hash
+        # if(block.prev_hash != last_block_hash):
+        #     print(f"Invalid Block: Previous hash mismatch: {block.id}")
+        #     return False
+        
+        # Validate Hash
+        if(block.hash != block.block_Hash()):
+            print(f"Invalid Block: Hash mismatch {block.id}")
+            return False
+
+        # Validate Transactions
+        for txn in block.txns[1:]:
+            sender = txn.sender_id
+            receiver = txn.receiver_id
+            if(true_balances[sender] < txn.amount):
+                print(f"Invalid Transaction: {txn}")
+                return False
+            
+            true_balances[sender] -= txn.amount
+            true_balances[receiver] += txn.amount
+        
+        # Validate Balances
+        for node, balance in block.balances.items():
+            if(true_balances[node]!=balance):
+                print(f"Invalid Block: Wrong Balance of node {node.id}")
+                return False
+        
+        return True
+            
 
     def block_broadcast(self, block, source_node=None):
         """method to broadcast block"""
