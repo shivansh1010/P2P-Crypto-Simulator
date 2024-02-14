@@ -94,17 +94,32 @@ class Node:
 
 
 
+    def updates_balances(self, hash):
+        """"""
+        if hash in self.balances: # already included in the balances
+            return
+        block_balance = {}
+        parent_hash = self.block_registry[hash].prev_hash
+        if parent_hash not in self.balances:
+            parent_balance = self.balances[parent_hash]
+            for txn in self.block_registry[hash].txns:
+                if txn.sender_id != -1:
+                    block_balance[txn.sender_id] -= txn.amount
+                    block_balance[txn.receiver_id] += txn.amount
+        
 
     def block_create(self):
         """method to create a block and start mining"""
 
-        coinbase_txn = Transaction(self.network.time, 50, None, self)
-        txns_to_include = [coinbase_txn] + []
         parent_block_hash = self.blockchain_leaves[-1] # how to properly select parent block here?
         parent_block_height = self.block_registry[parent_block_hash].height
+        coinbase_txn = Transaction(self.network.time, 50, None, self)
+        
+        pool_picked_txns = []
 
+
+        txns_to_include = [coinbase_txn] + pool_picked_txns # coinbase should always be the first txn in a block
         timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec) # use hashing power here
-
         block = Block(timestamp, parent_block_hash, parent_block_height + 1, txns_to_include)
         self.network.event_queue.push(
             Event(timestamp, self, self, "blk_mine", data=block)
