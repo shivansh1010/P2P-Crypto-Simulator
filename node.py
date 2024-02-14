@@ -22,7 +22,7 @@ class Node:
         self.network = network
 
         self.balances = defaultdict(dict) # Block -> {Node -> Balance}
-        self.genesis_block = Block(self.network.time, -1, -1, [])
+        self.genesis_block = Block(self.network.time, -1, 0, [])
 
         self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
         self.block_registry = {self.genesis_block.hash: self.genesis_block} # Hash -> Block
@@ -98,11 +98,12 @@ class Node:
     def block_create(self):
         """method to create a block and start mining"""
 
-        txns_to_include = []
+        coinbase_txn = Transaction(self.network.time, 50, None, self)
+        txns_to_include = [coinbase_txn] + []
         parent_block_hash = self.blockchain_leaves[-1] # how to properly select parent block here?
         parent_block_height = self.block_registry[parent_block_hash].height
 
-        timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec/self.hashing_power)
+        timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec) # use hashing power here
 
         block = Block(timestamp, parent_block_hash, parent_block_height + 1, txns_to_include)
         self.network.event_queue.push(
@@ -111,7 +112,7 @@ class Node:
 
     def block_mine_handler(self, block):
         """method to create a block and handle it"""
-
+        block.mine_time = self.network.time
         for txn in list(block.txns)[1:]:
             self.txn_pool.remove(txn)
         self.block_broadcast(block)
@@ -120,6 +121,9 @@ class Node:
     def block_receive_handler(self, block, source_node):
         """method to handle block receive event"""
         if self.id == source_node.id:
+            return
+        
+        if block.hash in self.block_registry:
             return
         
         last_block_hash = self.blockchain_leaves[-1]
@@ -158,8 +162,8 @@ class Node:
         true_balances = self.balances.copy()
 
         # Validate Previous Hash
-        if block.prev_hash not in self.blockchain_leaves:
-            print(f"Invalid Block: Previous hash mismatch: {block.height}")
+        if block.prev_hash not in self.block_registry:
+            print(f"Invalid Block: Previous hash mismatch: {block.height}, {block.prev_hash}, {self.block_registry}")
             return False
         
         # Validate Previous Block Level
@@ -180,7 +184,7 @@ class Node:
             return False
         
         coinbase_txn = block.txns[0]
-        if coinbase_txn.amount >= 50: # Max Mining Reward
+        if coinbase_txn.amount > 50: # Max Mining Reward
             print(f"Invalid Trnsaction: Mining fee more than maximum mining fee, {coinbase_txn}")
             return False
         
