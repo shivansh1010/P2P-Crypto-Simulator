@@ -205,12 +205,12 @@ class Network:
 
             if event.type == "txn_create":
                 event.receiver.transaction_create_handler(event.time)
-                print(str(event))
+                # print(str(event))
             elif event.type == "txn_recv":
                 event.receiver.transaction_receive_handler(event.data, event.sender)
                 # print(str(event))
-            elif event.type == "blk_create":
-                event.receiver.block_create_handler(event.time)
+            elif event.type == "blk_mine":
+                event.receiver.block_mine_handler(event.data)
                 print(str(event))
             elif event.type == "blk_recv":
                 event.receiver.block_receive_handler(event.data, event.sender)

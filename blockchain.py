@@ -1,4 +1,3 @@
-from block import GenesisBlock
 from copy import deepcopy
 
 class Blockchain:

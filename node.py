@@ -5,7 +5,8 @@ from collections import deque
 from constants import *
 from transaction import Transaction
 from events import Event
-from block import Block, GenesisBlock
+from block import Block
+from collections import defaultdict
 import time
 
 
@@ -19,13 +20,12 @@ class Node:
         self.txn_pool = set()
         self.hashing_power = 0
         self.network = network
-        self.balances = {} # Node -> Balance
-     
+
+        self.balances = defaultdict(dict) # Block -> {Node -> Balance}
         self.genesis_block = Block(self.network.time, -1, -1, [])
 
         self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
         self.block_registry = {self.genesis_block.hash: self.genesis_block} # Hash -> Block
-        
 
     def add_neighbor(self, neighbor):
         self.neighbors.add(neighbor)
@@ -37,6 +37,7 @@ class Node:
     def get_neighbors(self):
         return list(self.neighbors)
     
+
 
     def compute_delay(self, msg_size, receiver):
         if(self.is_slow or receiver.is_slow):
@@ -82,7 +83,6 @@ class Node:
             delay = self.compute_delay(self.network.transaction_size, node)
             self.network.event_queue.push(Event(txn.timestamp + delay, self, node, "txn_recv", data=txn))
 
-
     def get_amount(self, node):
         """return balance of node, obtained from traversing blockchain"""
         # TODO: obtain from traversing blockchain
@@ -96,18 +96,21 @@ class Node:
 
 
     def block_create(self):
-        """method to add an blk_create event in the FUTURE"""
+        """method to create a block and start mining"""
 
-        timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec)
+        txns_to_include = []
+        parent_block_hash = self.blockchain_leaves[-1] # how to properly select parent block here?
+        parent_block_height = self.block_registry[parent_block_hash].height
+
+        timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec/self.hashing_power)
+
+        block = Block(timestamp, parent_block_hash, parent_block_height + 1, txns_to_include)
         self.network.event_queue.push(
-            Event(timestamp, self, self, "blk_create", data=None)
+            Event(timestamp, self, self, "blk_mine", data=block)
         )
 
-    def block_create_handler(self, event_timestamp):
+    def block_mine_handler(self, block):
         """method to create a block and handle it"""
-        txns_to_include = []
-        prev_hash = ''
-        block = Block(event_timestamp, -1, -1, [])
 
         for txn in list(block.txns)[1:]:
             self.txn_pool.remove(txn)
@@ -136,7 +139,7 @@ class Node:
         if prev_blk_hash == last_block_hash:
             self.blockchain_leaves[-1] = block.hash
 
-        elif block.level >= last_block.level:
+        elif block.height >= last_block.height:
             self.blockchain_leaves.append(block.hash)
             # TODO: This needs to be changed. 
             # Need to find the prev_block in blockchain_leaves and replace with this block,
@@ -156,22 +159,26 @@ class Node:
 
         # Validate Previous Hash
         if block.prev_hash not in self.blockchain_leaves:
-            print(f"Invalid Block: Previous hash mismatch: {block.id}")
+            print(f"Invalid Block: Previous hash mismatch: {block.height}")
             return False
         
         # Validate Previous Block Level
         prev_blk_hash = block.prev_hash
         prev_blk = self.block_registry[prev_blk_hash]
-        if prev_blk.level + 1 != block.level:
-            print(f"Invalid Block: Invalid Index {block.id}")
+        if prev_blk.height + 1 != block.height:
+            print(f"Invalid Block: Invalid Index {block.height}")
             return False
         
         # Validate Hash
-        if(block.hash != block.block_Hash()):
-            print(f"Invalid Block: Hash mismatch {block.id}")
+        if(block.hash != block.block_hash()):
+            print(f"Invalid Block: Hash mismatch {block.height}")
             return False
 
         # Validate Coinbase Transaction
+        if len(block.txns) < 1:
+            print(f"Invalid Block: No Transactions {block.height}")
+            return False
+        
         coinbase_txn = block.txns[0]
         if coinbase_txn.amount >= 50: # Max Mining Reward
             print(f"Invalid Trnsaction: Mining fee more than maximum mining fee, {coinbase_txn}")
