@@ -170,7 +170,7 @@ class Network:
         for node in self.nodes:
             neighbors = node.get_neighbors()
             neighbor_ids = [neighbor.id for neighbor in neighbors]
-            print(f"Node {node.id} is connected to: {neighbor_ids}")
+            print(f"Node {node.id} [{'slow' if node.is_slow else ''}, {'low-cpu' if node.is_low_cpu else ''}] is connected to: {neighbor_ids}")
 
     def set_initial_balance(self):
         for node in self.nodes:
@@ -181,7 +181,7 @@ class Network:
     def start_simulation(self):
         # push initial timestamps of every node to the queue
 
-        print(f' == Genesis block: {self.nodes[0].genesis_block.hash} == ')
+        print(f' == Genesis block: {self.nodes[0].genesis_block.hash} == \n')
 
         for node in self.nodes:
             node.transaction_create()
