@@ -17,15 +17,20 @@ class Block:
         self.mine_time = mine_time
 
     def block_hash(self):
-        txns_string = ""
-        for txn in self.txns:
-            txns_string += str(txn) 
-        txn_hash = sha256(txns_string.encode()).hexdigest()  
+        # txns_string = ""
+        # for txn in self.txns:
+        #     txns_string += str(txn) 
+        # txn_hash = sha256(txns_string.encode()).hexdigest()  
         
-        block_content = str(self.height) + str(self.prev_hash) + txn_hash
-        self.hash = sha256(block_content.encode()).hexdigest()
+        # block_content = str(self.height) + str(self.prev_hash) + txn_hash
+        self.hash = sha256(str(self).encode()).hexdigest()[:7]
 
         return self.hash
+    
+    def __str__(self):
+        return (
+            f"Block {self.height} {self.prev_hash} {self.creation_time} {[str(txn) for txn in self.txns]}"
+        )
     
     # def add_txn(self, txn):
     #     if(len(self.txns) >= self.size-1):

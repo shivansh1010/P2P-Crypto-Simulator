@@ -181,6 +181,8 @@ class Network:
     def start_simulation(self):
         # push initial timestamps of every node to the queue
 
+        print(f' == Genesis block: {self.nodes[0].genesis_block.hash} == ')
+
         for node in self.nodes:
             node.transaction_create()
             node.block_create()
@@ -220,6 +222,9 @@ class Network:
                 break
 
         print(f"Events in eventqueue: {self.event_queue.queue.qsize()}")
+
+        for node in self.nodes:
+            print(f' node {node.id} has blocks: {[block for block in node.block_registry.keys()]}')
 
 
 

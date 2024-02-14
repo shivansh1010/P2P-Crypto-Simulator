@@ -120,6 +120,9 @@ class Node:
 
     def block_receive_handler(self, block, source_node):
         """method to handle block receive event"""
+
+        # print(f'node {self.id} blk_recv {block.hash}')
+
         if self.id == source_node.id:
             return
         
@@ -213,6 +216,7 @@ class Node:
 
     def block_broadcast(self, block, source_node=None):
         """method to broadcast block"""
+        # print(f'node {self.id} sending to neighbors')
         for node in self.get_neighbors():
             if source_node and node.id == source_node.id:
                 continue
