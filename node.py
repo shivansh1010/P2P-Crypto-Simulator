@@ -100,6 +100,22 @@ class Node:
 
         coinbase_txn = Transaction(self.network.time, 50, None, self)
         txns_to_include = [coinbase_txn] + []
+
+        true_balances = self.balances        
+        for txn in self.txn_pool:
+            # Assuming honest block creator, Validate transaction
+            sender = txn.sender_id
+            receiver = txn.receiver_id
+            if(true_balances[sender] < txn.amount):
+                print(f"Invalid Transaction: {txn} while block creation, skipping this transaction")
+                
+            else:
+                true_balances[sender] -= txn.amount
+                true_balances[receiver] += txn.amount
+                txns_to_include.append(txn.deepcopy())
+            
+            self.txn_pool.remove(txn)
+
         parent_block_hash = self.blockchain_leaves[-1] # how to properly select parent block here?
         parent_block_height = self.block_registry[parent_block_hash].height
 
