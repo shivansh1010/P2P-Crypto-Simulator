@@ -21,8 +21,8 @@ class Node:
         self.hashing_power = 0
         self.network = network
 
-        self.balances = defaultdict(dict) # Block -> {Node -> Balance}
-        self.blockHash_to_mine = None
+        self.balances = defaultdict(dict) # Block_hash -> {Node_id -> Balance} # only mined blocks are considered here
+        self.block_hash_being_mined = None
         self.genesis_block = Block(self.network.time, -1, 0, [])
 
         self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
@@ -95,18 +95,18 @@ class Node:
 
 
 
-    def updates_balances(self, hash):
-        """"""
-        if hash in self.balances: # already included in the balances
-            return
-        block_balance = {}
-        parent_hash = self.block_registry[hash].prev_hash
-        if parent_hash not in self.balances:
-            parent_balance = self.balances[parent_hash]
-            for txn in self.block_registry[hash].txns:
-                if txn.sender_id != -1:
-                    block_balance[txn.sender_id] -= txn.amount
-                    block_balance[txn.receiver_id] += txn.amount
+    # def updates_balances(self, hash):
+    #     """"""
+    #     if hash in self.balances: # already included in the balances
+    #         return
+    #     block_balance = {}
+    #     parent_hash = self.block_registry[hash].prev_hash
+    #     if parent_hash not in self.balances:
+    #         parent_balance = self.balances[parent_hash]
+    #         for txn in self.block_registry[hash].txns:
+    #             if txn.sender_id != -1:
+    #                 block_balance[txn.sender_id] -= txn.amount
+    #                 block_balance[txn.receiver_id] += txn.amount
         
 
     def block_create(self):
@@ -117,31 +117,37 @@ class Node:
         coinbase_txn = Transaction(self.network.time, 50, None, self)
         txns_to_include = [coinbase_txn]
         
-        true_balances = self.balances        
+        true_balances = self.balances[parent_block_hash].copy()
         for txn in self.txn_pool:
             # Assuming honest block creator, Validate transaction
             sender = txn.sender_id
             receiver = txn.receiver_id
-            if(true_balances[sender] < txn.amount):
+            if true_balances[sender] < txn.amount: # care about the floating point comparison error
                 print(f"Invalid Transaction: {txn} while block creation, skipping this transaction")               
             else:
                 true_balances[sender] -= txn.amount
                 true_balances[receiver] += txn.amount
                 txns_to_include.append(txn)
 
+        block = Block(self.network.time, parent_block_hash, parent_block_height + 1, txns_to_include)
+
         timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec) # use hashing power here
-        block = Block(timestamp, parent_block_hash, parent_block_height + 1, txns_to_include)
         self.network.event_queue.push(
             Event(timestamp, self, self, "blk_mine", data=block)
         )
-        self.blockHash_to_mine = block.hash
+        self.block_hash_being_mined = block.hash
 
     def block_mine_handler(self, block):
         """method to create a block and handle it"""
-        if(block.hash != self.blockHash_to_mine):
+        if block.hash != self.block_hash_being_mined:
             return
         
+        # check if this block is still on the same longest chain
+        # if block.height 
+
+        # block sucessfully mined now
         block.mine_time = self.network.time
+        self.block_registry[block.hash] = block
         for txn in list(block.txns)[1:]:
             self.txn_pool.remove(txn)
         self.block_broadcast(block)
@@ -182,10 +188,10 @@ class Node:
             # Otherwise append
 
         # Restart block mining
-        self.blockHash_to_mine = None
+        self.block_hash_being_mined = None
         
         # Broadcast Block
-        self.block_broadcast(block, self)
+        self.block_broadcast(block, source_node)
        
 
     def is_block_valid(self, block):
@@ -194,14 +200,13 @@ class Node:
         # last_block = self.block_registry[last_block_hash]
         # true_balances = last_block.balances.copy()
 
-        true_balances = self.balances.copy()
 
         # Validate Previous Hash
         if block.prev_hash not in self.block_registry:
-            print(f"Invalid Block: Previous hash mismatch: {block.height}, {block.prev_hash}, {self.block_registry}")
+            print(f"Invalid Block: Previous hash not found: {block.height}, {block.prev_hash}, {self.block_registry}")
             return False
         
-        # Validate Previous Block Level
+        # Validate Previous Block height
         prev_blk_hash = block.prev_hash
         prev_blk = self.block_registry[prev_blk_hash]
         if prev_blk.height + 1 != block.height:
@@ -209,7 +214,7 @@ class Node:
             return False
         
         # Validate Hash
-        if(block.hash != block.block_hash()):
+        if block.hash != block.block_hash():
             print(f"Invalid Block: Hash mismatch {block.height}")
             return False
 
@@ -218,12 +223,15 @@ class Node:
             print(f"Invalid Block: No Transactions {block.height}")
             return False
         
+        # Check if the mining reward is correct
         coinbase_txn = block.txns[0]
         if coinbase_txn.amount > 50: # Max Mining Reward
             print(f"Invalid Trnsaction: Mining fee more than maximum mining fee, {coinbase_txn}")
             return False
         
+
         # Validate Transactions
+        true_balances = self.balances[prev_blk_hash].copy()
         for txn in block.txns[1:]:
             sender = txn.sender_id
             receiver = txn.receiver_id
@@ -235,7 +243,7 @@ class Node:
             true_balances[receiver] += txn.amount
 
         # Block Valid, Update the balances
-        self.balances = true_balances
+        self.balances[block.hash] = true_balances
         
         # # Validate Balances
         # for node, balance in block.balances.items():
