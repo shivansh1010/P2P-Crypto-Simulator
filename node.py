@@ -22,6 +22,7 @@ class Node:
         self.network = network
 
         self.balances = defaultdict(dict) # Block -> {Node -> Balance}
+        self.blockHash_to_mine = None
         self.genesis_block = Block(self.network.time, -1, 0, [])
 
         self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
@@ -99,7 +100,7 @@ class Node:
         """method to create a block and start mining"""
 
         coinbase_txn = Transaction(self.network.time, 50, None, self)
-        txns_to_include = [coinbase_txn] + []
+        txns_to_include = [coinbase_txn]
 
         true_balances = self.balances        
         for txn in self.txn_pool:
@@ -123,9 +124,13 @@ class Node:
         self.network.event_queue.push(
             Event(timestamp, self, self, "blk_mine", data=block)
         )
+        self.blockHash_to_mine = block.hash
 
     def block_mine_handler(self, block):
         """method to create a block and handle it"""
+        if(block.hash != self.blockHash_to_mine):
+            return
+        
         block.mine_time = self.network.time
         for txn in list(block.txns)[1:]:
             self.txn_pool.remove(txn)
@@ -166,6 +171,9 @@ class Node:
             # Need to find the prev_block in blockchain_leaves and replace with this block,
             # Otherwise append
 
+        # Restart block mining
+        self.blockHash_to_mine = None
+        
         # Broadcast Block
         self.block_broadcast(block, self)
        
