@@ -113,8 +113,6 @@ class Node:
                 true_balances[sender] -= txn.amount
                 true_balances[receiver] += txn.amount
                 txns_to_include.append(txn.deepcopy())
-            
-            self.txn_pool.remove(txn)
 
         parent_block_hash = self.blockchain_leaves[-1] # how to properly select parent block here?
         parent_block_height = self.block_registry[parent_block_hash].height
