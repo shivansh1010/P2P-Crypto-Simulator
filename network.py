@@ -6,6 +6,7 @@ from constants import *
 # from transaction import Transaction
 from events import Event, EventQueue
 from node import Node
+from block import Block
 import time
 
 
@@ -48,6 +49,8 @@ class Network:
 
             # mining
             self.mean_mining_time_sec = int(config['mining']['mean_mining_time_sec'])
+            self.mining_reward = int(config['mining']['mining_reward'])
+            self.max_txn_in_block = int(config['mining']['max_txn_in_block'])
 
         else:
             print("Unknown config type")
@@ -84,6 +87,7 @@ class Network:
 
 
     def create_nodes(self):
+        genesis = Block(self.time, -1, 0, [])
         for i in range(self.total_nodes):
             speed_threshold = np.random.uniform(0, 1)
             cpu_threshold = np.random.uniform(0, 1)
@@ -94,7 +98,7 @@ class Network:
                 self.num_slow_nodes += 1
             if is_low_cpu:
                 self.num_low_cpu_nodes += 1
-            node = Node(i, is_slow, is_low_cpu, self)
+            node = Node(i, is_slow, is_low_cpu, self, genesis)
             self.nodes.append(node)
 
 
@@ -134,8 +138,8 @@ class Network:
             if available_nodes:
                 neighbor = available_nodes.pop()
                 # print(f"{neighbor.id} added as neighbor of {node.id}")
-                node.add_neighbor(neighbor)
-                neighbor.add_neighbor(node)
+                node.add_neighbor(neighbor.id)
+                neighbor.add_neighbor(node.id)
             else:
                 return
 
@@ -144,10 +148,11 @@ class Network:
 
     def is_connected_graph(self):
         visited = set()
-        queue = deque([self.nodes[0]]) 
+        queue = deque([self.nodes[0].id]) 
         while queue:
-            current_node = queue.popleft()
-            visited.add(current_node)
+            current_node_id = queue.popleft()
+            current_node = self.nodes[current_node_id]
+            visited.add(current_node_id)
             for neighbor in current_node.get_neighbors():
                 if neighbor not in visited:
                     queue.append(neighbor)
@@ -168,14 +173,13 @@ class Network:
 
     def display_network(self):
         for node in self.nodes:
-            neighbors = node.get_neighbors()
-            neighbor_ids = [neighbor.id for neighbor in neighbors]
+            neighbor_ids = node.get_neighbors()
             print(f"Node {node.id} [{'slow' if node.is_slow else ''}, {'low-cpu' if node.is_low_cpu else ''}] is connected to: {neighbor_ids}")
 
     def set_initial_balance(self):
         for node in self.nodes:
             for other_node in self.nodes:
-                node.balances[other_node] = self.node_starting_balance
+                node.balances[node.genesis_block.hash][other_node.id] = self.node_starting_balance
 
 
     def start_simulation(self):
@@ -198,6 +202,7 @@ class Network:
                 break
 
             self.time = event.time
+            receiver = self.nodes[event.receiver_id]
             # print(event)
             # time.sleep(event.time - current_time)
             # process event
@@ -206,17 +211,17 @@ class Network:
                 break
 
             if event.type == "txn_create":
-                event.receiver.transaction_create_handler(event.time)
                 # print(str(event))
+                receiver.transaction_create_handler(event.time)
             elif event.type == "txn_recv":
-                event.receiver.transaction_receive_handler(event.data, event.sender)
                 # print(str(event))
+                receiver.transaction_receive_handler(event.data, event.sender_id)
             elif event.type == "blk_mine":
-                event.receiver.block_mine_handler(event.data)
                 print(str(event))
+                receiver.block_mine_handler(event.data)
             elif event.type == "blk_recv":
-                event.receiver.block_receive_handler(event.data, event.sender)
-                # print(str(event))
+                print(str(event))
+                receiver.block_receive_handler(event.data, event.sender_id)
             else:
                 print("Unknown event type")
                 break
@@ -225,6 +230,7 @@ class Network:
 
         for node in self.nodes:
             print(f' node {node.id} has blocks: {[block for block in node.block_registry.keys()]}')
+            print(f' node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}')
 
 
 

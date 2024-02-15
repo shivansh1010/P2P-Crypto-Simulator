@@ -9,7 +9,7 @@ class Block:
 
         self.prev_hash = prev_hash
         self.creation_time = creation_time
-        self.height = height # uuid4() # -> using id so that we can use this at height
+        self.height = height # uuid4()
         self.txns = transactions
 
         # these are not included in the block-hash

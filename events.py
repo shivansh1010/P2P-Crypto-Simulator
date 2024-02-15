@@ -13,10 +13,10 @@ class EventQueue:
         print(self.queue)
 
 class Event:
-    def __init__(self, time, sender, receiver, type, data=None):
+    def __init__(self, time, sender_id, receiver_id, type, data=None):
         self.time = time
-        self.sender = sender
-        self.receiver = receiver
+        self.sender_id = sender_id
+        self.receiver_id = receiver_id
         self.type = type
         self.data = data
 
@@ -24,4 +24,4 @@ class Event:
         return self.time < other.time
 
     def __str__(self):
-        return f" Event -> time {round(self.time, 4)} sender {self.sender.id} receiver {self.receiver.id} type {self.type}"
+        return f" Event -> time {round(self.time, 4)} sender {self.sender_id} receiver {self.receiver_id} type {self.type}"
