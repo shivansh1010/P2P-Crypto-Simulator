@@ -22,6 +22,7 @@ class Node:
         self.network = network
 
         self.balances = defaultdict(dict) # Block -> {Node -> Balance}
+        self.blockHash_to_mine = None
         self.genesis_block = Block(self.network.time, -1, 0, [])
 
         self.blockchain_leaves = [self.genesis_block.hash] # Hash of block_chain leaves
@@ -114,8 +115,8 @@ class Node:
         parent_block_hash = self.blockchain_leaves[-1] # how to properly select parent block here?
         parent_block_height = self.block_registry[parent_block_hash].height
         coinbase_txn = Transaction(self.network.time, 50, None, self)
+        txns_to_include = [coinbase_txn]
         
-        pool_picked_txns = []
         true_balances = self.balances        
         for txn in self.txn_pool:
             # Assuming honest block creator, Validate transaction
@@ -126,17 +127,20 @@ class Node:
             else:
                 true_balances[sender] -= txn.amount
                 true_balances[receiver] += txn.amount
-                pool_picked_txns.append(txn.deepcopy())
+                txns_to_include.append(txn)
 
-        txns_to_include = [coinbase_txn] + pool_picked_txns # coinbase should always be the first txn in a block
         timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec) # use hashing power here
         block = Block(timestamp, parent_block_hash, parent_block_height + 1, txns_to_include)
         self.network.event_queue.push(
             Event(timestamp, self, self, "blk_mine", data=block)
         )
+        self.blockHash_to_mine = block.hash
 
     def block_mine_handler(self, block):
         """method to create a block and handle it"""
+        if(block.hash != self.blockHash_to_mine):
+            return
+        
         block.mine_time = self.network.time
         for txn in list(block.txns)[1:]:
             self.txn_pool.remove(txn)
@@ -177,6 +181,9 @@ class Node:
             # Need to find the prev_block in blockchain_leaves and replace with this block,
             # Otherwise append
 
+        # Restart block mining
+        self.blockHash_to_mine = None
+        
         # Broadcast Block
         self.block_broadcast(block, self)
        
