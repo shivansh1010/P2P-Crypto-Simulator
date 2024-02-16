@@ -19,6 +19,7 @@ class Node:
         self.neighbors = set()
         self.txn_pool = set() # Set of transactions that have to be processed
         self.txn_registry = set() # Set of all the transactions seen 
+        self.pending_blocks = set() # Set of blocks whose previous block hasn't arrived
 
         self.hashing_power = 0
         self.network = network
@@ -203,7 +204,12 @@ class Node:
         self.block_broadcast(block)
         self.block_create()
 
-
+    def process_pending_blocks(self, block):
+        for pending_blk in self.pending_blocks:
+            if pending_blk.prev_hash == block.hash:
+                self.pending_blocks.remove(block)
+                self.block_receive_handler(pending_blk, self.id)
+    
     def block_receive_handler(self, block, source_node_id):
         """method to handle block receive event"""
 
@@ -222,8 +228,16 @@ class Node:
         if not self.is_block_valid(block):
             return
         
+        # Add to pending blocks if previous block not received
+        if block.prev_hash not in self.block_registry or self.block_registry[block.prev_hash] in self.pending_blocks:
+            self.pending_blocks.add(block)
+            return
+         
         # Add to block registry
         self.block_registry[block.hash] = block
+
+        # Check if this is a parent of some pending block and add them
+        self.process_pending_blocks(block)
 
         # Find the longest chain and add the block accordingly
         # if prev_blk_hash == last_block_hash:
@@ -251,9 +265,9 @@ class Node:
 
 
         # Validate Previous Hash
-        if block.prev_hash not in self.block_registry:
-            print(f"Invalid Block: Previous hash not found: {block.height}, {block.prev_hash}")
-            return False
+        # if block.prev_hash not in self.block_registry:
+        #     print(f"Invalid Block: Previous hash not found: {block.height}, {block.prev_hash}")
+        #     return False
         
         # Validate Previous Block height
         prev_blk_hash = block.prev_hash
