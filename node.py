@@ -70,7 +70,7 @@ class Node:
         receiver_id = random.choice(self.get_neighbors())
         while self.id == receiver_id:
             receiver_id = random.choice(self.get_neighbors())
-        amount = round(random.uniform(0, float(self.get_amount(self.id))), 6)
+        amount = round(random.uniform(0.00001, float(self.get_amount(self.id))), 6)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
         print(str(txn))
@@ -110,7 +110,7 @@ class Node:
                 if node == txn.sender_id:
                     total_balance -= txn.amount
             curr_block = self.block_registry[curr_block].prev_hash
-        return total_balance
+        return max(0.0, total_balance)
     
     def get_balances(self, blockHash):
         balances = {}
@@ -172,8 +172,8 @@ class Node:
                 # true_balances[sender] = true_balances.get(sender, 0) - txn.amount
                 # true_balances[receiver] = true_balances.get(receiver, 0) + txn.amount
                 txns_to_include.append(txn)
-            # else:
-            #     print(f"Invalid Transaction: while block creation, skipping this transaction")
+            else:
+                print(f"Invalid Transaction: Insufficient balance {true_balances.get(sender, 0)}, trying to pay {txn.amount}")
             
             if len(txns_to_include) >= self.network.max_txn_in_block:
                 break
@@ -255,14 +255,36 @@ class Node:
         # Add to block registry
         self.block_registry[block.hash] = deepcopy(block)
 
-        # Check if this is a parent of some pending block and add them
-        self.process_pending_blocks(block)
+        # Remove these txns from txn_pool
+        for txn in list(block.txns)[1:]:
+            if txn in self.txn_pool:
+                self.txn_pool.remove(txn)
 
         # Find the longest chain and add the block accordingly
         if block.height > last_block.height:
+
             if block.prev_hash != last_block_hash:
+                old_branch = self.longest_leaf_hash
+                new_branch = block.prev_hash
                 print(f"{self.id} Changing mining branch from {self.longest_leaf_hash} to {block.prev_hash}")
+
+                while(old_branch != new_branch):
+                    old_block = self.block_registry[old_branch]
+                    new_block = self.block_registry[new_branch]
+
+                    for txn in old_block.txns[1:]:
+                        self.txn_pool.add(txn)
+                    for txn in new_block.txns[1:]:
+                        if txn in self.txn_pool:
+                            self.txn_pool.remove(txn)
+
+                    old_branch = old_block.prev_hash
+                    new_branch = new_block.prev_hash
+
             self.longest_leaf_hash = block.hash
+
+        # Check if this is a parent of some pending block and add them
+        self.process_pending_blocks(block)
 
         # Restart block mining
         self.block_hash_being_mined = None
@@ -278,11 +300,6 @@ class Node:
         # last_block = self.block_registry[last_block_hash]
         # true_balances = last_block.balances.copy()
 
-
-        # Validate Previous Hash
-        # if block.prev_hash not in self.block_registry:
-        #     print(f"Invalid Block: Previous hash not found: {block.height}, {block.prev_hash}")
-        #     return False
         
         # Validate Previous Block height
         prev_blk_hash = block.prev_hash
