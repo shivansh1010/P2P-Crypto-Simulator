@@ -70,9 +70,10 @@ class Node:
         receiver_id = random.choice(self.get_neighbors())
         while self.id == receiver_id:
             receiver_id = random.choice(self.get_neighbors())
-        amount = round(random.uniform(0, self.get_amount(self.id)), 6)
+        amount = round(random.uniform(0, float(self.get_amount(self.id))), 6)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
+        print(str(txn))
         self.txn_pool.add(txn)
         self.txn_registry.add(txn)
         self.transaction_broadcast(txn)
@@ -216,6 +217,8 @@ class Node:
 
         for txn in list(block.txns)[1:]:
             self.txn_pool.remove(txn)
+
+        print(str(block.txns[0]))
         self.block_broadcast(block)
         self.block_create()
 
@@ -241,7 +244,7 @@ class Node:
         last_block = self.block_registry[last_block_hash]
 
         # Add to pending blocks if previous block not received
-        if block.prev_hash not in self.block_registry or self.block_registry[block.prev_hash] in self.pending_blocks:
+        if block.prev_hash not in self.block_registry:
             self.pending_blocks.add(block)
             return
         
@@ -257,7 +260,8 @@ class Node:
 
         # Find the longest chain and add the block accordingly
         if block.height > last_block.height:
-            print(f"Changing mining branch from {self.longest_leaf_hash} to {block.hash}")
+            if block.prev_hash != last_block_hash:
+                print(f"{self.id} Changing mining branch from {self.longest_leaf_hash} to {block.prev_hash}")
             self.longest_leaf_hash = block.hash
 
         # Restart block mining
