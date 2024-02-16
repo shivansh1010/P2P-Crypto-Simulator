@@ -92,8 +92,8 @@ class Network:
         for i in range(self.total_nodes):
             speed_threshold = np.random.uniform(0, 1)
             cpu_threshold = np.random.uniform(0, 1)
-            is_slow = speed_threshold <= self.percent_slow_nodes
-            is_low_cpu = cpu_threshold <= self.percent_low_cpu_nodes
+            is_slow = speed_threshold <= (self.percent_slow_nodes / 100.0)
+            is_low_cpu = cpu_threshold <= (self.percent_low_cpu_nodes / 100.0)
 
             if is_slow:
                 self.num_slow_nodes += 1
@@ -175,7 +175,7 @@ class Network:
     def display_network(self):
         for node in self.nodes:
             neighbor_ids = node.get_neighbors()
-            print(f"Node {node.id} [{'slow' if node.is_slow else ''}, {'low-cpu' if node.is_low_cpu else ''}] is connected to: {neighbor_ids}")
+            print(f"Node {node.id} [{'SLOW' if node.is_slow else 'fast'}, {'LOW-CPU' if node.is_low_cpu else 'high-cpu'}] is connected to: {neighbor_ids}")
 
     def set_initial_balance(self):
         for node in self.nodes:
