@@ -222,8 +222,9 @@ class Node:
     def process_pending_blocks(self, block):
         for pending_blk in self.pending_blocks:
             if pending_blk.prev_hash == block.hash:
-                self.pending_blocks.remove(block)
+                self.pending_blocks.remove(pending_blk)
                 self.block_receive_handler(pending_blk, self.id)
+                break
     
     def block_receive_handler(self, block, source_node_id):
         """method to handle block receive event"""
