@@ -212,7 +212,7 @@ class Network:
                 break
 
             if event.type == "txn_create":
-                # print(str(event))
+                print(str(event))
                 receiver.transaction_create_handler(event.time)
             elif event.type == "txn_recv":
                 # print(str(event))
@@ -221,7 +221,7 @@ class Network:
                 print(str(event))
                 receiver.block_mine_handler(event.data)
             elif event.type == "blk_recv":
-                # print(str(event))
+                print(str(event))
                 receiver.block_receive_handler(event.data, event.sender_id)
             else:
                 print("Unknown event type")

@@ -8,6 +8,7 @@ from events import Event
 from block import Block
 from collections import defaultdict
 import time
+from copy import deepcopy
 
 
 class Node:
@@ -165,7 +166,7 @@ class Node:
                 break
 
         block = Block(self.network.time, parent_block_hash, parent_block_height + 1, txns_to_include)
-        timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec) # use hashing power here
+        timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec / self.hashing_power) # use hashing power here
         
         self.network.event_queue.push(Event(timestamp, self.id, self.id, "blk_mine", data=block))
         self.block_hash_being_mined = block.hash
@@ -234,7 +235,7 @@ class Node:
             return
          
         # Add to block registry
-        self.block_registry[block.hash] = block
+        self.block_registry[block.hash] = deepcopy(block)
 
         # Check if this is a parent of some pending block and add them
         self.process_pending_blocks(block)
