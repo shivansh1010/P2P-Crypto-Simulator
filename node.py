@@ -224,13 +224,13 @@ class Node:
         last_block_hash = self.longest_leaf_hash
         last_block = self.block_registry[last_block_hash]
 
-        # Validate Block
-        if not self.is_block_valid(block):
-            return
-        
         # Add to pending blocks if previous block not received
         if block.prev_hash not in self.block_registry or self.block_registry[block.prev_hash] in self.pending_blocks:
             self.pending_blocks.add(block)
+            return
+        
+        # Validate Block
+        if not self.is_block_valid(block):
             return
          
         # Add to block registry
