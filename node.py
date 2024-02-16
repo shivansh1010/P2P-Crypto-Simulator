@@ -17,7 +17,9 @@ class Node:
         self.is_low_cpu = is_low_cpu
         # self.coins = 1000
         self.neighbors = set()
-        self.txn_pool = set()
+        self.txn_pool = set() # Set of transactions that have to be processed
+        self.txn_registry = set() # Set of all the transactions seen 
+
         self.hashing_power = 0
         self.network = network
 
@@ -69,14 +71,16 @@ class Node:
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
         self.txn_pool.add(txn)
+        self.txn_registry.add(txn)
         self.transaction_broadcast(txn)
         self.transaction_create()
 
     def transaction_receive_handler(self, txn, source_node_id):
         """method to handle txn receive event"""
-        if txn in self.txn_pool:
+        if txn in self.txn_registry:
             return
         self.txn_pool.add(txn)
+        self.txn_registry.add(txn)
         self.transaction_broadcast(txn, source_node_id)
 
     def transaction_broadcast(self, txn, source_node_id=None):
