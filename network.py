@@ -3,7 +3,7 @@ import string
 import numpy as np
 from collections import deque
 from constants import *
-# from transaction import Transaction
+from transaction import Transaction
 from events import Event, EventQueue
 from node import Node
 from block import Block
@@ -88,7 +88,8 @@ class Network:
 
 
     def create_nodes(self):
-        genesis = Block(self.time, -1, 0, [])
+        genesisTransactions = [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
+        genesis = Block(self.time, -1, 0, genesisTransactions)
         for i in range(self.total_nodes):
             speed_threshold = np.random.uniform(0, 1)
             cpu_threshold = np.random.uniform(0, 1)
