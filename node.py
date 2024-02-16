@@ -15,7 +15,7 @@ class Node:
         self.id = id
         self.is_slow = is_slow
         self.is_low_cpu = is_low_cpu
-        self.coins = 1000
+        # self.coins = 1000
         self.neighbors = set()
         self.txn_pool = set()
         self.hashing_power = 0
@@ -225,6 +225,7 @@ class Node:
         # if prev_blk_hash == last_block_hash:
         #     self.longest_leaf_hash = block.hash
         if block.height > last_block.height:
+            print(f"Changing mining branch from {self.longest_leaf_hash} to {block.hash}")
             self.longest_leaf_hash = block.hash
             # TODO: This needs to be changed. 
             # Need to find the prev_block in blockchain_leaves and replace with this block,
@@ -247,7 +248,7 @@ class Node:
 
         # Validate Previous Hash
         if block.prev_hash not in self.block_registry:
-            print(f"Invalid Block: Previous hash not found: {block.height}, {block.prev_hash}, {self.block_registry.keys()}")
+            print(f"Invalid Block: Previous hash not found: {block.height}, {block.prev_hash}")
             return False
         
         # Validate Previous Block height

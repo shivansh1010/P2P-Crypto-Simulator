@@ -7,6 +7,7 @@ from constants import *
 from events import Event, EventQueue
 from node import Node
 from block import Block
+from graphviz import Digraph
 import time
 
 
@@ -220,7 +221,7 @@ class Network:
                 print(str(event))
                 receiver.block_mine_handler(event.data)
             elif event.type == "blk_recv":
-                print(str(event))
+                # print(str(event))
                 receiver.block_receive_handler(event.data, event.sender_id)
             else:
                 print("Unknown event type")
@@ -234,4 +235,21 @@ class Network:
 
 
 
+    def create_plot(self):
+        d = Digraph('simulation', node_attr={'fontname': 'Arial', 'shape': 'record', 'style': 'filled', 'fillcolor': '#FFFFE0'})
+        d.graph_attr['rankdir'] = 'LR'
+        for i, node in enumerate(reversed(self.nodes)):
+            with d.subgraph(name=f'cluster_outer_{i}') as outer:  # Adding a cluster inside cluster to increase margin between them
+                outer.attr(style='invis')
+                with outer.subgraph(name=f'cluster_{i}', graph_attr={'margin': '30'}) as c:
+                    c.attr(style='filled', color='none', fillcolor='#E6F7FF', labelloc='b', labeljust='l', label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >')
+                    for block in node.block_registry.values():
+                        miner = block.txns[0].receiver_id if block.txns else '??'
+                        label = f'{block.hash} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}'
+                        c.node(f'{node.id}-{block.hash}', label=label)
+                        if block.prev_hash != -1:
+                            c.edge(f'{node.id}-{block.prev_hash}',f'{node.id}-{block.hash}')
 
+        d.view()
+
+        pass

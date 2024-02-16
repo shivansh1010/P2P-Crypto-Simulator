@@ -5,7 +5,7 @@ from hashlib import sha256
 from constants import *
 
 class Block:
-    def __init__(self, creation_time, prev_hash, height, transactions, mine_time = -1):
+    def __init__(self, creation_time, prev_hash, height, transactions, mine_time = 0.0):
 
         self.prev_hash = prev_hash
         self.creation_time = creation_time
