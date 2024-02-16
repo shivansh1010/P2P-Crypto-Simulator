@@ -81,7 +81,7 @@ class Network:
         self.create_nodes()
         self.create_network_topology()
         self.set_hashing_power()
-        self.set_initial_balance()
+        # self.set_initial_balance()
 
         self.event_queue = EventQueue()
         self.time = 0

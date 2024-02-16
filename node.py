@@ -26,7 +26,7 @@ class Node:
         self.hashing_power = 0
         self.network = network
 
-        self.balances = defaultdict(dict) # Block_hash -> {Node_id -> Balance} # only mined blocks are added here
+        # self.balances = defaultdict(dict) # Block_hash -> {Node_id -> Balance} # only mined blocks are added here
         self.block_hash_being_mined = None
         self.genesis_block = deepcopy(genesis)
 
@@ -111,6 +111,16 @@ class Node:
             curr_block = self.block_registry[curr_block].prev_hash
         return total_balance
     
+    def get_balances(self, blockHash):
+        balances = {}
+        curr_block = blockHash
+        while curr_block != -1:
+            for txn in self.block_registry[curr_block].txns:
+                balances[txn.receiver_id] = balances.get(txn.receiver_id, 0) + txn.amount
+                balances[txn.sender_id] = balances.get(txn.sender_id, 0) - txn.amount
+            curr_block = self.block_registry[curr_block].prev_hash
+        return balances
+    
     def is_transaction_valid(self, txn):
         """method to check if txn is valid"""
         return True
@@ -149,16 +159,17 @@ class Node:
         #     true_balances[receiver] += txn.amount
         # self.balances[parent_block_hash] = true_balances
 
-        
-        true_balances = self.balances[parent_block_hash].copy()
+
+        true_balances = self.get_balances(parent_block_hash)        
+        # true_balances = self.balances[parent_block_hash].copy()
         for txn in self.txn_pool:
             # Assuming honest block creator, Validate transaction
             sender = txn.sender_id
             receiver = txn.receiver_id
             
-            if true_balances[sender] >= txn.amount: # care about the floating point comparison error
-                true_balances[sender] -= txn.amount
-                true_balances[receiver] += txn.amount
+            if true_balances.get(sender, 0) >= txn.amount: # care about the floating point comparison error
+                # true_balances[sender] = true_balances.get(sender, 0) - txn.amount
+                # true_balances[receiver] = true_balances.get(receiver, 0) + txn.amount
                 txns_to_include.append(txn)
             # else:
             #     print(f"Invalid Transaction: while block creation, skipping this transaction")
@@ -186,13 +197,15 @@ class Node:
 
         # update the balances cache
         parent_block_hash = self.longest_leaf_hash
-        true_balances = self.balances[parent_block_hash].copy()
-        for txn in self.txn_pool:
-            sender = txn.sender_id
-            receiver = txn.receiver_id
-            true_balances[sender] -= txn.amount
-            true_balances[receiver] += txn.amount
-        self.balances[block.hash] = true_balances
+        true_balances = self.get_balances(parent_block_hash)
+        # true_balances = self.balances[parent_block_hash].copy()
+        # # UNCOMMENT
+        # for txn in self.txn_pool:
+        #     sender = txn.sender_id
+        #     receiver = txn.receiver_id
+        #     true_balances[sender] -= txn.amount
+        #     true_balances[receiver] += txn.amount
+        # self.balances[block.hash] = true_balances
 
 
         # block sucessfully mined now
@@ -295,19 +308,20 @@ class Node:
         
 
         # Validate Transactions
-        true_balances = self.balances[prev_blk_hash].copy()
+        true_balances = self.get_balances(prev_blk_hash)
+        # true_balances = self.balances[prev_blk_hash].copy()
         for txn in block.txns[1:]:
             sender = txn.sender_id
             receiver = txn.receiver_id
-            if true_balances[sender] < txn.amount:
+            if true_balances.get(sender, 0) < txn.amount:
                 print(f"Invalid Block: insufficient sender({sender}) balance, cache:{true_balances[sender]}, txn:{txn.amount}")
                 return False
             
-            true_balances[sender] -= txn.amount
-            true_balances[receiver] += txn.amount
+            # true_balances[sender] -= txn.amount
+            # true_balances[receiver] += txn.amount
 
         # Block Valid, Update the balances
-        self.balances[block.hash] = true_balances
+        # self.balances[block.hash] = true_balances
         
         # # Validate Balances
         # for node, balance in block.balances.items():
