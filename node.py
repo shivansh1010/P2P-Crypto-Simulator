@@ -9,6 +9,7 @@ from block import Block
 from collections import defaultdict
 import time
 from copy import deepcopy
+from math import isclose
 
 
 class Node:
@@ -27,7 +28,7 @@ class Node:
 
         self.balances = defaultdict(dict) # Block_hash -> {Node_id -> Balance} # only mined blocks are added here
         self.block_hash_being_mined = None
-        self.genesis_block = genesis
+        self.genesis_block = deepcopy(genesis)
 
         # Hash of Leaf Block of the Longest Branch in blockchain. We'll always mine with this block as parent.
         self.longest_leaf_hash = self.genesis_block.hash 
@@ -241,14 +242,9 @@ class Node:
         self.process_pending_blocks(block)
 
         # Find the longest chain and add the block accordingly
-        # if prev_blk_hash == last_block_hash:
-        #     self.longest_leaf_hash = block.hash
         if block.height > last_block.height:
             print(f"Changing mining branch from {self.longest_leaf_hash} to {block.hash}")
             self.longest_leaf_hash = block.hash
-            # TODO: This needs to be changed. 
-            # Need to find the prev_block in blockchain_leaves and replace with this block,
-            # Otherwise append
 
         # Restart block mining
         self.block_hash_being_mined = None

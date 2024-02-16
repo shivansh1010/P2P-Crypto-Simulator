@@ -12,7 +12,7 @@ class Transaction:
         self.amount = amount
 
         def __str__(self): 
-             return (
-            f"{self.id}: {self.sender_id} pays {self.receiver_id} {self.amount} coins."
-        )                 
+            if self.sender_id == -1:
+                return (f"{self.id}: {self.receiver_id} mines {self.amount} coins")
+            return (f"{self.id}: {self.sender_id} pays {self.receiver_id} {self.amount} coins")                 
            

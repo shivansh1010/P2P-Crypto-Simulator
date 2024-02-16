@@ -244,7 +244,7 @@ class Network:
                 with outer.subgraph(name=f'cluster_{i}', graph_attr={'margin': '30'}) as c:
                     c.attr(style='filled', color='none', fillcolor='#E6F7FF', labelloc='b', labeljust='l', label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >')
                     for block in node.block_registry.values():
-                        miner = block.txns[0].receiver_id if block.txns else '??'
+                        miner = block.txns[0].receiver_id if block.txns else 'Satoshi'
                         label = f'{block.hash} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}'
                         c.node(f'{node.id}-{block.hash}', label=label)
                         if block.prev_hash != -1:

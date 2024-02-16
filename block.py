@@ -23,7 +23,7 @@ class Block:
         # txn_hash = sha256(txns_string.encode()).hexdigest()  
         
         # block_content = str(self.height) + str(self.prev_hash) + txn_hash
-        self.hash = sha256(str(self).encode()).hexdigest()[:7]
+        self.hash = sha256(str(self).encode()).hexdigest()[:10]
 
         return self.hash
     
