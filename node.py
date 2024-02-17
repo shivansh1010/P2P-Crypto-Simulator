@@ -13,7 +13,7 @@ class Node:
     """Node class to handle functions related to node"""
 
     def __init__(self, id, is_slow, is_low_cpu, network, genesis):
-        """ "method to initialize attributes of node"""
+        """method to initialize attributes of node"""
         self.id = id
         self.is_slow = is_slow
         self.is_low_cpu = is_low_cpu
