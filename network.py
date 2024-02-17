@@ -26,6 +26,7 @@ class Network:
             self.execution_time = int(config['simulation']['execution_time'])
             self.percent_slow_nodes = float(config['simulation']['percent_slow_nodes'])
             self.percent_low_cpu_nodes = float(config['simulation']['percent_low_cpu_nodes'])
+            self.output_dir = config['simulation']['output_dir']
 
             #node
             self.min_neighbors = int(config['node']['min_neighbors'])
@@ -246,14 +247,12 @@ class Network:
                         if block.prev_hash != -1:
                             c.edge(f'{node.id}-{block.prev_hash}',f'{node.id}-{block.hash}')
 
-        d.view()
-
-        pass
+        d.view(directory=self.output_dir)
 
 
     def dump_to_file(self):
         """dump all the blocks of each node to a separate file"""
-        path = os.path.join(os.path.dirname(__file__), 'output')
+        path = os.path.join(os.path.dirname(__file__), self.output_dir)
         if not os.path.exists(path):
             os.makedirs(path)
         for node in self.nodes:
