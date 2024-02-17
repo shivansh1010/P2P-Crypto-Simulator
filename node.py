@@ -1,15 +1,9 @@
 import random
-import string
 import numpy as np
-from collections import deque
-from constants import *
 from transaction import Transaction
 from events import Event
 from block import Block
-from collections import defaultdict
-import time
 from copy import deepcopy
-from math import isclose
 
 
 class Node:

@@ -1,22 +1,16 @@
 import random
-import string
 import numpy as np
 from collections import deque
-from constants import *
 from transaction import Transaction
-from events import Event, EventQueue
+from events import EventQueue
 from node import Node
 from block import Block
 from graphviz import Digraph
-import time
 
 
 class Network:
     def __init__(self, config, type):
 
-        # self.n = n
-        # self.z0 = z0
-        # self.z1 = z1
         self.nodes = []
         self.neighbor_constraint = False
         self.connected_graph = False

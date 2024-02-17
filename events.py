@@ -1,5 +1,4 @@
 from queue import PriorityQueue
-# from node import Node
 
 
 class EventQueue:
