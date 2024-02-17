@@ -1,23 +1,26 @@
 """"class to handle functions related to node"""
 
 import random
+from copy import deepcopy
 import numpy as np
+
 from transaction import Transaction
 from events import Event
 from block import Block
-from copy import deepcopy
 
 
 class Node:
+    """Node class to handle functions related to node"""
+
     def __init__(self, id, is_slow, is_low_cpu, network, genesis):
-        """"method to initialize attributes of node"""
+        """ "method to initialize attributes of node"""
         self.id = id
         self.is_slow = is_slow
         self.is_low_cpu = is_low_cpu
-        self.neighbors = set() # Set of nodes that are connected to this node
-        self.txn_pool = set() # Set of transactions that have to be processed
-        self.txn_registry = set() # Set of ids of all the transactions seen 
-        self.pending_blocks = set() # Set of blocks whose previous block hasn't arrived
+        self.neighbors = set()  # Set of nodes that are connected to this node
+        self.txn_pool = set()  # Set of transactions that have to be processed
+        self.txn_registry = set()  # Set of ids of all the transactions seen
+        self.pending_blocks = set()  # Set of blocks whose previous block hasn't arrived
 
         self.hashing_power = 0
         self.network = network
@@ -25,24 +28,27 @@ class Node:
         self.genesis_block = deepcopy(genesis)
 
         # Hash of Leaf Block of the Longest Branch in blockchain. We'll always mine on this chain
-        self.longest_leaf_hash = self.genesis_block.hash 
-        self.block_registry = {self.genesis_block.hash: self.genesis_block} # Hash -> Block
+        self.longest_leaf_hash = self.genesis_block.hash
+        self.block_registry = {self.genesis_block.hash: self.genesis_block}  # Hash -> Block
 
     def __str__(self):
         return f"{self.id}"
 
     def add_neighbor(self, neighbor):
+        """method to add a neighbor to the node's neighbor list"""
         self.neighbors.add(neighbor)
 
     def remove_neighbor(self, neighbor):
+        """method to remove a neighbor from the node's neighbor list"""
         if neighbor in self.neighbors:
             self.neighbors.remove(neighbor)
 
     def get_neighbors(self):
+        """method to return the list of neighbors of the node"""
         return list(self.neighbors)
 
     def compute_delay(self, msg_size, receiver_id):
-        """"method to compute delay for sending messages"""
+        """ "method to compute delay for sending messages"""
         if self.is_slow or self.network.nodes[receiver_id].is_slow:
             link_speed = self.network.slow_node_link_speed
         else:
@@ -81,7 +87,7 @@ class Node:
         self.transaction_broadcast(txn, source_node_id)
 
     def transaction_broadcast(self, txn, source_node_id=None):
-        """ broadcast fuction. Broadcast txn to all neighbours, except the node from which it came from"""
+        """broadcast fuction. Broadcast txn to all neighbours, except the node from which it came from"""
         for node_id in self.get_neighbors():
             # dont send back to the node from which txn came
             if source_node_id and node_id == source_node_id:
@@ -101,9 +107,9 @@ class Node:
                     total_balance -= txn.amount
             curr_block = self.block_registry[curr_block].prev_hash
         return max(0.0, total_balance)
-    
+
     def get_balances(self, block_hash):
-        """"returns a dictionary containing balances of each node"""
+        """ "returns a dictionary containing balances of each node"""
 
         balances = {}
         curr_block = block_hash
@@ -122,15 +128,17 @@ class Node:
         coinbase_txn = Transaction(self.network.time, self.network.mining_reward, None, self.id)
         txns_to_include = [coinbase_txn]
 
-        true_balances = self.get_balances(parent_block_hash)        
+        true_balances = self.get_balances(parent_block_hash)
         for txn in self.txn_pool:
             # Assuming honest block creator, Validate transaction
-            sender = txn.sender_id     
+            sender = txn.sender_id
             if true_balances.get(sender, 0) >= txn.amount:
                 txns_to_include.append(txn)
             else:
-                print(f"Invalid Transaction: Insufficient balance {true_balances.get(sender, 0)}, trying to pay {txn.amount}")
-            
+                print(
+                    f"Invalid Transaction: Insufficient balance {true_balances.get(sender, 0)}, trying to pay {txn.amount}"
+                )
+
             # Don't exceed maximum block size limit
             if len(txns_to_include) >= self.network.max_txn_in_block:
                 break
@@ -139,7 +147,7 @@ class Node:
         block = Block(self.network.time, parent_block_hash, parent_block_height + 1, txns_to_include)
         # Introduce mining delay
         timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec / self.hashing_power)
-        
+
         # Schedule the block mine event
         self.network.event_queue.push(Event(timestamp, self.id, self.id, "blk_mine", data=block))
         self.block_hash_being_mined = block.hash
@@ -170,13 +178,13 @@ class Node:
         self.block_create()
 
     def process_pending_blocks(self, block):
-        """"if the parent block arrives after the child, remove the child block from pending blocks and process it"""
+        """ "if the parent block arrives after the child, remove the child block from pending blocks and process it"""
         for pending_blk in self.pending_blocks:
             if pending_blk.prev_hash == block.hash:
                 self.pending_blocks.remove(pending_blk)
                 self.block_receive_handler(pending_blk, self.id)
                 break
-    
+
     def block_receive_handler(self, block, source_node_id):
         """method to handle block receive event"""
 
@@ -185,7 +193,7 @@ class Node:
             return
         if block.hash in self.block_registry:
             return
-        
+
         last_block_hash = self.longest_leaf_hash
         last_block = self.block_registry[last_block_hash]
 
@@ -193,11 +201,11 @@ class Node:
         if block.prev_hash not in self.block_registry:
             self.pending_blocks.add(block)
             return
-        
+
         # Validate Block
         if not self.is_block_valid(block):
             return
-         
+
         # Add to block registry
         self.block_registry[block.hash] = deepcopy(block)
 
@@ -214,7 +222,7 @@ class Node:
                 new_branch = block.prev_hash
                 print(f"{self.id} Changing mining branch from {self.longest_leaf_hash} to {block.prev_hash}")
 
-                while(old_branch != new_branch):
+                while old_branch != new_branch:
                     old_block = self.block_registry[old_branch]
                     new_block = self.block_registry[new_branch]
 
@@ -237,10 +245,9 @@ class Node:
         # Restart block mining
         self.block_hash_being_mined = None
         self.block_create()
-        
+
         # Broadcast Block
         self.block_broadcast(block, source_node_id)
-       
 
     def is_block_valid(self, block):
         """method to check if block is valid"""
@@ -251,7 +258,7 @@ class Node:
         if prev_blk.height + 1 != block.height:
             print(f"Invalid Block: Invalid Index {block.height}")
             return False
-        
+
         # Validate Hash
         if block.hash != block.block_hash():
             print(f"Invalid Block: Hash mismatch {block.height}")
@@ -261,27 +268,27 @@ class Node:
         if len(block.txns) < 1:
             print(f"Invalid Block: No Transactions {block.height}")
             return False
-        
+
         if len(block.txns) > self.network.max_txn_in_block:
             print(f"Invalid Block: Block size exceeded limit {block.height}")
             return False
-        
+
         # Check if the mining reward is correct
         coinbase_txn = block.txns[0]
-        if coinbase_txn.amount > self.network.mining_reward: # Max Mining Reward
+        if coinbase_txn.amount > self.network.mining_reward:  # Max Mining Reward
             print(f"Invalid Block: Mining fee more than maximum mining fee, {coinbase_txn}")
             return False
-        
+
         # Validate Transactions
         true_balances = self.get_balances(prev_blk_hash)
         for txn in block.txns[1:]:
             sender = txn.sender_id
             if true_balances.get(sender, 0) < txn.amount:
-                print(f"Invalid Block: insufficient sender({sender}) balance, cache:{true_balances[sender]}, txn:{txn.amount}")
+                print(
+                    f"Invalid Block: insufficient sender({sender}) balance, cache:{true_balances[sender]}, txn:{txn.amount}"
+                )
                 return False
-        
         return True
-            
 
     def block_broadcast(self, block, source_node_id=None):
         """method to broadcast block"""

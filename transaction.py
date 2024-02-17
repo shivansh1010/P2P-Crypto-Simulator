@@ -1,7 +1,10 @@
+"""module to represent a transaction in the blockchain network"""
+
 from uuid import uuid4
 
 
 class Transaction:
+    """class to represent a transaction in the blockchain network"""
     def __init__(self, ts, amount, sender_id, receiver_id):
         """"method to initialize attributes of transaction"""
         self.id = uuid4()

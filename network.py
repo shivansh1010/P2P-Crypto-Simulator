@@ -2,18 +2,20 @@
 
 import random
 import os
-import numpy as np
 from collections import deque
+import numpy as np
+from graphviz import Digraph
+
 from transaction import Transaction
 from events import EventQueue
 from node import Node
 from block import Block
-from graphviz import Digraph
 
 
 class Network:
+    """Network class to execute simlation using a discrete-events"""
     def __init__(self, config, type):
-        """"memeber to initialize attributes of network"""
+        """ "memeber to initialize attributes of network"""
         self.nodes = []
         self.neighbor_constraint = False
         self.connected_graph = False
@@ -22,40 +24,39 @@ class Network:
         self.time = 0
         self.event_queue = None
 
-        if type == 'toml':
-            #simulation
-            self.total_nodes = int(config['simulation']['total_nodes'])
-            self.execution_time = int(config['simulation']['execution_time'])
-            self.percent_slow_nodes = float(config['simulation']['percent_slow_nodes'])
-            self.percent_low_cpu_nodes = float(config['simulation']['percent_low_cpu_nodes'])
-            self.output_dir = config['simulation']['output_dir']
+        if type == "toml":
+            # simulation
+            self.total_nodes = int(config["simulation"]["total_nodes"])
+            self.execution_time = int(config["simulation"]["execution_time"])
+            self.percent_slow_nodes = float(config["simulation"]["percent_slow_nodes"])
+            self.percent_low_cpu_nodes = float(config["simulation"]["percent_low_cpu_nodes"])
+            self.output_dir = config["simulation"]["output_dir"]
 
-            #node
-            self.min_neighbors = int(config['node']['min_neighbors'])
-            self.max_neighbors = int(config['node']['max_neighbors'])
+            # node
+            self.min_neighbors = int(config["node"]["min_neighbors"])
+            self.max_neighbors = int(config["node"]["max_neighbors"])
 
             # transaction
-            self.transaction_size = int(config['transaction']['size'])
-            self.mean_interarrival_time_sec = int(config['transaction']['mean_interarrival_time_sec'])
-            
+            self.transaction_size = int(config["transaction"]["size"])
+            self.mean_interarrival_time_sec = int(config["transaction"]["mean_interarrival_time_sec"])
+
             # network
-            self.min_light_prop_delay = float(config['network']['min_light_prop_delay'])
-            self.max_light_prop_delay = float(config['network']['max_light_prop_delay'])
-            self.slow_node_link_speed = float(config['network']['slow_node_link_speed'])
-            self.fast_node_link_speed = float(config['network']['fast_node_link_speed'])
-            self.queuing_delay_constant = int(config['network']['queuing_delay_constant'])
+            self.min_light_prop_delay = float(config["network"]["min_light_prop_delay"])
+            self.max_light_prop_delay = float(config["network"]["max_light_prop_delay"])
+            self.slow_node_link_speed = float(config["network"]["slow_node_link_speed"])
+            self.fast_node_link_speed = float(config["network"]["fast_node_link_speed"])
+            self.queuing_delay_constant = int(config["network"]["queuing_delay_constant"])
 
             # mining
-            self.mean_mining_time_sec = int(config['mining']['mean_mining_time_sec'])
-            self.mining_reward = int(config['mining']['mining_reward'])
-            self.max_txn_in_block = int(config['mining']['max_txn_in_block'])
+            self.mean_mining_time_sec = int(config["mining"]["mean_mining_time_sec"])
+            self.mining_reward = int(config["mining"]["mining_reward"])
+            self.max_txn_in_block = int(config["mining"]["max_txn_in_block"])
 
         else:
             print("Unknown config type")
 
         # derived
         self.prop_delay = random.uniform(self.min_light_prop_delay, self.max_light_prop_delay)
-
 
     def show_parameters(self):
         """method to display parameters of network"""
@@ -74,7 +75,6 @@ class Network:
         print(f" Fast node link speed: {self.fast_node_link_speed}")
         print(f" Queuing delay constant: {self.queuing_delay_constant}")
         print(f" Mean mining time: {self.mean_mining_time_sec}")
-        
 
     def prepare_simulation(self):
         """method to create P2P network"""
@@ -83,7 +83,6 @@ class Network:
         self.set_hashing_power()
         self.event_queue = EventQueue()
         self.time = 0
-
 
     def create_nodes(self):
         """method to create nodes of the network"""
@@ -104,7 +103,6 @@ class Network:
             node = Node(i, is_slow, is_low_cpu, self, genesis)
             self.nodes.append(node)
 
-
     def create_network_topology(self):
         """method to build connections between nodes"""
 
@@ -115,16 +113,15 @@ class Network:
             for node in self.nodes:
                 self.build_neighbors(node)
 
-            if not (self.neighbor_constraint):
+            if not self.neighbor_constraint:
                 print("Not every node has 3-6 neighbors, rebuilding... \n")
                 continue
 
             self.connected_graph = self.is_connected_graph()
-            if not (self.connected_graph):
+            if not self.connected_graph:
                 print("Network topology not connected, rebuilding... \n")
 
         print("Network created \n")
-
 
     def reset_network(self):
         """method to delete network connections"""
@@ -133,15 +130,16 @@ class Network:
         self.neighbor_constraint = False
         self.connected_graph = False
 
-
     def build_neighbors(self, node):
         """method to create neighbors of a node"""
 
         num_neighbors = random.randint(self.min_neighbors, self.max_neighbors)
         # print(f"{node.id} NEIGHBORS: {num_neighbors}")
-        available_nodes = [p for p in self.nodes if p != node and len(p.neighbors) < self.max_neighbors and p not in node.neighbors]
+        available_nodes = [
+            p for p in self.nodes if p != node and len(p.neighbors) < self.max_neighbors and p not in node.neighbors
+        ]
         random.shuffle(available_nodes)
-        
+
         for _ in range(num_neighbors - len(node.neighbors)):
             if available_nodes:
                 neighbor = available_nodes.pop()
@@ -152,12 +150,11 @@ class Network:
                 return
 
         self.neighbor_constraint = True
-    
 
     def is_connected_graph(self):
         """method to check if network is connected"""
         visited = set()
-        queue = deque([self.nodes[0].id]) 
+        queue = deque([self.nodes[0].id])
         while queue:
             current_node_id = queue.popleft()
             current_node = self.nodes[current_node_id]
@@ -166,15 +163,14 @@ class Network:
                 if neighbor not in visited:
                     queue.append(neighbor)
         return len(visited) == len(self.nodes)
-    
 
     def set_hashing_power(self):
-        """"method to set hashing power of nodes"""
+        """ "method to set hashing power of nodes"""
 
         # High hash power = 10 x Low hash power
         high_cpu_nodes = self.total_nodes - self.num_low_cpu_nodes
-        low_hash_power = 1/(10*high_cpu_nodes + self.num_low_cpu_nodes)
-        high_hash_power = 10*low_hash_power
+        low_hash_power = 1 / (10 * high_cpu_nodes + self.num_low_cpu_nodes)
+        high_hash_power = 10 * low_hash_power
 
         for node in self.nodes:
             if node.is_low_cpu:
@@ -182,17 +178,18 @@ class Network:
             else:
                 node.hashing_power = high_hash_power
 
-
     def display_network(self):
         """method to display the network"""
         for node in self.nodes:
             neighbor_ids = node.get_neighbors()
-            print(f"Node {node.id} [{'SLOW' if node.is_slow else 'FAST'}, {'LOW-CPU' if node.is_low_cpu else 'HIGH-CPU'}] is connected to: {neighbor_ids}")
+            print(
+                f"Node {node.id} [{'SLOW' if node.is_slow else 'FAST'}, {'LOW-CPU' if node.is_low_cpu else 'HIGH-CPU'}] is connected to: {neighbor_ids}"
+            )
 
     def start_simulation(self):
         """method to start simulation"""
 
-        print(f' == Genesis block: {self.nodes[0].genesis_block.hash} == \n')
+        print(f" == Genesis block: {self.nodes[0].genesis_block.hash} == \n")
 
         for node in self.nodes:
             node.transaction_create()
@@ -208,9 +205,9 @@ class Network:
             # Update current time
             self.time = event.time
             receiver = self.nodes[event.receiver_id]
-    
+
             if event.time > self.execution_time:
-                print ("Simulation time is up")
+                print("Simulation time is up")
                 break
 
             if event.type == "txn_create":
@@ -231,30 +228,38 @@ class Network:
         print(f"Events in eventqueue: {self.event_queue.queue.qsize()}")
 
         for node in self.nodes:
-            print(f' node {node.id} has blocks: {[block for block in node.block_registry.keys()]}')
-            print(f' node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}')
-
-
+            print(f" node {node.id} has blocks: {[block for block in node.block_registry.keys()]}")
+            print(f" node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}")
 
     def create_plot(self):
         """method to visualize blockchain"""
-        
-        d = Digraph('simulation', node_attr={'fontname': 'Arial', 'shape': 'record', 'style': 'filled', 'fillcolor': '#FFFFE0'})
-        d.graph_attr['rankdir'] = 'LR'
+
+        d = Digraph(
+            "simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled", "fillcolor": "#FFFFE0"}
+        )
+        d.graph_attr["rankdir"] = "LR"
         for i, node in enumerate(reversed(self.nodes)):
-            with d.subgraph(name=f'cluster_outer_{i}') as outer:  # Adding a cluster inside cluster to increase margin between them
-                outer.attr(style='invis')
-                with outer.subgraph(name=f'cluster_{i}', graph_attr={'margin': '30'}) as c:
-                    c.attr(style='filled', color='none', fillcolor='#E6F7FF', labelloc='b', labeljust='l', label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >')
+            with d.subgraph(
+                name=f"cluster_outer_{i}"
+            ) as outer:  # Adding a cluster inside cluster to increase margin between them
+                outer.attr(style="invis")
+                with outer.subgraph(name=f"cluster_{i}", graph_attr={"margin": "30"}) as c:
+                    c.attr(
+                        style="filled",
+                        color="none",
+                        fillcolor="#E6F7FF",
+                        labelloc="b",
+                        labeljust="l",
+                        label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >',
+                    )
                     for block in node.block_registry.values():
-                        miner = block.txns[0].receiver_id if block.txns else 'Satoshi'
-                        label = f'{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}'
-                        c.node(f'{node.id}-{block.hash}', label=label)
+                        miner = block.txns[0].receiver_id if block.txns else "Satoshi"
+                        label = f"{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
+                        c.node(f"{node.id}-{block.hash}", label=label)
                         if block.prev_hash != -1:
-                            c.edge(f'{node.id}-{block.prev_hash}',f'{node.id}-{block.hash}')
+                            c.edge(f"{node.id}-{block.prev_hash}", f"{node.id}-{block.hash}")
 
         d.view(directory=self.output_dir)
-
 
     def dump_to_file(self):
         """dump all the blocks of each node to a separate file"""
@@ -262,7 +267,7 @@ class Network:
         if not os.path.exists(path):
             os.makedirs(path)
         for node in self.nodes:
-            with open(f'{path}/node_{node.id}.csv', 'w', encoding='utf-8') as f:
+            with open(f"{path}/node_{node.id}.csv", "w", encoding="utf-8") as f:
                 f.write("block_hash,height,mine_time,included_transactions,prev_hash\n")
                 for block in node.block_registry.values():
-                    f.write(f'{block.__str_v2__()}\n')
+                    f.write(f"{block.__str_v2__()}\n")
