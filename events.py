@@ -1,3 +1,5 @@
+"""module to create and handle events and event queue"""
+
 from queue import PriorityQueue
 
 

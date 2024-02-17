@@ -6,7 +6,7 @@ class Block:
 
         self.prev_hash = prev_hash
         self.creation_time = creation_time
-        self.height = height 
+        self.height = height # height of block in chain from genesis block
         self.txns = transactions
 
         # these are not included in the block-hash
@@ -14,6 +14,7 @@ class Block:
         self.mine_time = mine_time
 
     def block_hash(self):
+        """"method to calculate hash of a block"""
         # txns_string = ""
         # for txn in self.txns:
         #     txns_string += str(txn) 
