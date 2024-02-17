@@ -10,7 +10,7 @@ Arguments:
     config_file     Path to the configuration file in TOML format.
 
 Example:
-    python main.py my_config.toml
+    python3 main.py config.ini
 
 Dependencies:
     - argparse: Used for parsing command-line arguments.
