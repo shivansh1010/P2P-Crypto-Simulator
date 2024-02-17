@@ -40,8 +40,8 @@ class Network:
             # network
             self.min_light_prop_delay = float(config['network']['min_light_prop_delay'])
             self.max_light_prop_delay = float(config['network']['max_light_prop_delay'])
-            self.slow_node_link_speed = int(config['network']['slow_node_link_speed'])
-            self.fast_node_link_speed = int(config['network']['fast_node_link_speed'])
+            self.slow_node_link_speed = float(config['network']['slow_node_link_speed'])
+            self.fast_node_link_speed = float(config['network']['fast_node_link_speed'])
             self.queuing_delay_constant = int(config['network']['queuing_delay_constant'])
 
             # mining
@@ -256,6 +256,7 @@ class Network:
         if not os.path.exists(path):
             os.makedirs(path)
         for node in self.nodes:
-            with open(f'{path}/node_{node.id}.txt', 'w') as f:
+            with open(f'{path}/node_{node.id}.csv', 'w', encoding='utf-8') as f:
+                f.write("block_hash,height,mine_time,included_transactions,prev_hash\n")
                 for block in node.block_registry.values():
                     f.write(f'{block.__str_v2__()}\n')
