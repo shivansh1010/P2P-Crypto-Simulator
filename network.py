@@ -248,7 +248,7 @@ class Network:
                     c.attr(style='filled', color='none', fillcolor='#E6F7FF', labelloc='b', labeljust='l', label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >')
                     for block in node.block_registry.values():
                         miner = block.txns[0].receiver_id if block.txns else 'Satoshi'
-                        label = f'{block.s_hash} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}'
+                        label = f'{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}'
                         c.node(f'{node.id}-{block.hash}', label=label)
                         if block.prev_hash != -1:
                             c.edge(f'{node.id}-{block.prev_hash}',f'{node.id}-{block.hash}')

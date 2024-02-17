@@ -37,11 +37,11 @@ class Block:
         )
     
     @property
-    def s_hash(self):
+    def hash_s(self):
         """ Shortened hash for display """
         return self.hash[:7]
     
     @property
-    def s_prev_hash(self):
+    def prev_hash_s(self):
         """ Shortened prev_hash for display"""
-        return self.hash[:7]
+        return self.prev_hash[:7] if self.prev_hash != -1 else -1

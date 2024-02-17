@@ -16,7 +16,7 @@ class Node:
         self.is_low_cpu = is_low_cpu
         self.neighbors = set() # Set of nodes that are connected to this node
         self.txn_pool = set() # Set of transactions that have to be processed
-        self.txn_registry = set() # Set of all the transactions seen
+        self.txn_registry = set() # Set of ids of all the transactions seen 
         self.pending_blocks = set() # Set of blocks whose previous block hasn't arrived
 
         self.hashing_power = 0
@@ -68,16 +68,16 @@ class Node:
 
         print(str(txn))
         self.txn_pool.add(txn)
-        self.txn_registry.add(txn)
+        self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn)
         self.transaction_create()
 
     def transaction_receive_handler(self, txn, source_node_id):
         """method to handle txn receive event"""
-        if txn in self.txn_registry:
+        if txn.id in self.txn_registry or txn in self.txn_pool:
             return
         self.txn_pool.add(txn)
-        self.txn_registry.add(txn)
+        self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn, source_node_id)
 
     def transaction_broadcast(self, txn, source_node_id=None):
@@ -102,11 +102,11 @@ class Node:
             curr_block = self.block_registry[curr_block].prev_hash
         return max(0.0, total_balance)
     
-    def get_balances(self, blockHash):
+    def get_balances(self, block_hash):
         """"returns a dictionary containing balances of each node"""
 
         balances = {}
-        curr_block = blockHash
+        curr_block = block_hash
         while curr_block != -1:
             for txn in self.block_registry[curr_block].txns:
                 balances[txn.receiver_id] = balances.get(txn.receiver_id, 0) + txn.amount
