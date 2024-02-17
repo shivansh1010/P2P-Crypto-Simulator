@@ -1,3 +1,5 @@
+""""class to handle functions related to network and simulating the blockchain"""
+
 import random
 import os
 import numpy as np
@@ -11,7 +13,7 @@ from graphviz import Digraph
 
 class Network:
     def __init__(self, config, type):
-
+        """"memeber to initialize attributes of network"""
         self.nodes = []
         self.neighbor_constraint = False
         self.connected_graph = False
@@ -31,8 +33,7 @@ class Network:
             #node
             self.min_neighbors = int(config['node']['min_neighbors'])
             self.max_neighbors = int(config['node']['max_neighbors'])
-            # self.node_starting_balance = float(config['node']['node_starting_balance'])
-            
+
             # transaction
             self.transaction_size = int(config['transaction']['size'])
             self.mean_interarrival_time_sec = int(config['transaction']['mean_interarrival_time_sec'])
@@ -57,6 +58,8 @@ class Network:
 
 
     def show_parameters(self):
+        """method to display parameters of network"""
+
         print(f" Simulation time: {self.execution_time}")
         print(f" Total nodes: {self.total_nodes}")
         print(f" Slow nodes percent: {self.percent_slow_nodes}")
@@ -74,18 +77,20 @@ class Network:
         
 
     def prepare_simulation(self):
+        """method to create P2P network"""
         self.create_nodes()
         self.create_network_topology()
         self.set_hashing_power()
-        # self.set_initial_balance()
-
         self.event_queue = EventQueue()
         self.time = 0
 
 
     def create_nodes(self):
-        genesisTransactions = [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
-        genesis = Block(self.time, -1, 0, genesisTransactions)
+        """method to create nodes of the network"""
+
+        # Create coinbase transactions to initialize balances
+        genesis_transactions = [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
+        genesis = Block(self.time, -1, 0, genesis_transactions)
         for i in range(self.total_nodes):
             speed_threshold = np.random.uniform(0, 1)
             cpu_threshold = np.random.uniform(0, 1)
@@ -101,6 +106,8 @@ class Network:
 
 
     def create_network_topology(self):
+        """method to build connections between nodes"""
+
         print("Building network... \n")
         while not (self.connected_graph and self.neighbor_constraint):
             self.reset_network()
@@ -120,6 +127,7 @@ class Network:
 
 
     def reset_network(self):
+        """method to delete network connections"""
         for node in self.nodes:
             node.neighbors.clear()
         self.neighbor_constraint = False
@@ -127,9 +135,11 @@ class Network:
 
 
     def build_neighbors(self, node):
-        num_neighbors = random.randint(3, 6)
+        """method to create neighbors of a node"""
+
+        num_neighbors = random.randint(self.min_neighbors, self.max_neighbors)
         # print(f"{node.id} NEIGHBORS: {num_neighbors}")
-        available_nodes = [p for p in self.nodes if p != node and len(p.neighbors) < 6 and p not in node.neighbors]
+        available_nodes = [p for p in self.nodes if p != node and len(p.neighbors) < self.max_neighbors and p not in node.neighbors]
         random.shuffle(available_nodes)
         
         for _ in range(num_neighbors - len(node.neighbors)):
@@ -145,6 +155,7 @@ class Network:
     
 
     def is_connected_graph(self):
+        """method to check if network is connected"""
         visited = set()
         queue = deque([self.nodes[0].id]) 
         while queue:
@@ -158,6 +169,9 @@ class Network:
     
 
     def set_hashing_power(self):
+        """"method to set hashing power of nodes"""
+
+        # High hash power = 10 x Low hash power
         high_cpu_nodes = self.total_nodes - self.num_low_cpu_nodes
         low_hash_power = 1/(10*high_cpu_nodes + self.num_low_cpu_nodes)
         high_hash_power = 10*low_hash_power
@@ -170,40 +184,31 @@ class Network:
 
 
     def display_network(self):
+        """method to display the network"""
         for node in self.nodes:
             neighbor_ids = node.get_neighbors()
-            print(f"Node {node.id} [{'SLOW' if node.is_slow else 'fast'}, {'LOW-CPU' if node.is_low_cpu else 'high-cpu'}] is connected to: {neighbor_ids}")
-
-    def set_initial_balance(self):
-        for node in self.nodes:
-            for other_node in self.nodes:
-                node.balances[node.genesis_block.hash][other_node.id] = self.node_starting_balance
-
+            print(f"Node {node.id} [{'SLOW' if node.is_slow else 'FAST'}, {'LOW-CPU' if node.is_low_cpu else 'HIGH-CPU'}] is connected to: {neighbor_ids}")
 
     def start_simulation(self):
-        # push initial timestamps of every node to the queue
+        """method to start simulation"""
 
         print(f' == Genesis block: {self.nodes[0].genesis_block.hash} == \n')
 
         for node in self.nodes:
             node.transaction_create()
             node.block_create()
-            # self.event_queue.push(Event(0, node, "blk_mine"))
 
         while True:
-            # get next event
-            # self.event_queue.print()
             if not self.event_queue.queue.empty():
                 event = self.event_queue.pop()
             else:
                 print("No more events")
                 break
 
+            # Update current time
             self.time = event.time
             receiver = self.nodes[event.receiver_id]
-            # print(event)
-            # time.sleep(event.time - current_time)
-            # process event
+    
             if event.time > self.execution_time:
                 print ("Simulation time is up")
                 break
@@ -212,7 +217,6 @@ class Network:
                 print(str(event))
                 receiver.transaction_create_handler(event.time)
             elif event.type == "txn_recv":
-                # print(str(event))
                 receiver.transaction_receive_handler(event.data, event.sender_id)
             elif event.type == "blk_mine":
                 print(str(event))
@@ -233,6 +237,8 @@ class Network:
 
 
     def create_plot(self):
+        """method to visualize blockchain"""
+        
         d = Digraph('simulation', node_attr={'fontname': 'Arial', 'shape': 'record', 'style': 'filled', 'fillcolor': '#FFFFE0'})
         d.graph_attr['rankdir'] = 'LR'
         for i, node in enumerate(reversed(self.nodes)):
