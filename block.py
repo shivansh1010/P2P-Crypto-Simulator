@@ -20,7 +20,7 @@ class Block:
         # txn_hash = sha256(txns_string.encode()).hexdigest()  
         
         # block_content = str(self.height) + str(self.prev_hash) + txn_hash
-        self.hash = sha256(str(self).encode()).hexdigest()[:10]
+        self.hash = sha256(str(self).encode()).hexdigest()[:32]
 
         return self.hash
     
@@ -28,3 +28,19 @@ class Block:
         return (
             f"Block {self.height} {self.prev_hash} {self.creation_time} {[str(txn) for txn in self.txns]}"
         )
+    
+
+    def __str_v2__(self):
+        return (
+            f"{self.hash},{self.height},{self.mine_time},{len(self.txns)},{self.prev_hash}"
+        )
+    
+    @property
+    def s_hash(self):
+        """ Shortened hash for display """
+        return self.hash[:7]
+    
+    @property
+    def s_prev_hash(self):
+        """ Shortened prev_hash for display"""
+        return self.hash[:7]

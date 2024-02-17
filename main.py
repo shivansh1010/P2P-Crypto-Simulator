@@ -52,5 +52,6 @@ if __name__ == "__main__":
     network.display_network()
     network.start_simulation()
     network.create_plot()
+    network.dump_to_file()
 
 
