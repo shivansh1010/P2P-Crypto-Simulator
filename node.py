@@ -344,7 +344,7 @@ class Node:
         true_balances = self.get_balances(prev_blk_hash)
         for txn in block.txns[1:]:
             sender = txn.sender_id
-            if true_balances.get(sender, 0) < txn.amount:
+            if round(true_balances.get(sender, 0), 4) < txn.amount:
                 log.warning(
                     "Received Invalid Block: insufficient sender(%s) balance, cache:%s, txn:%s",
                     sender,

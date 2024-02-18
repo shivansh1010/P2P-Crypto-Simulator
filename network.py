@@ -2,6 +2,7 @@
 
 import random
 import os
+import time
 from collections import deque
 import numpy as np
 from graphviz import Digraph
@@ -207,6 +208,8 @@ class Network:
 
         print(f" -- Genesis block: {self.nodes[0].genesis_block.hash}\n")
 
+
+        start_time = time.time()
         log.info("Simulation starts...")
         for node in self.nodes:
             node.transaction_create()
@@ -242,10 +245,12 @@ class Network:
             else:
                 log.warning("Unknown event type")
                 break
+        
+        end_time = time.time()
+        print(f"\nSimulation time: {end_time - start_time} seconds")
 
     def display_info(self):
         """display info about the simulation"""
-        print()
         print("Events currently in event queue: ", self.event_queue.queue.qsize())
 
         all_blocks = set()
