@@ -29,7 +29,7 @@ class Block:
         return self.hash
 
     def __str__(self):
-        return f"Block {self.height} {self.prev_hash} {self.creation_time} {[str(txn) for txn in self.txns]}"
+        return f"Block {self.height} {self.prev_hash} {self.creation_time} {[txn.__str_v2__() for txn in self.txns]}"
 
     def __str_v2__(self):
         return f"{self.hash},{self.height},{self.mine_time},{len(self.txns)},{self.prev_hash}"

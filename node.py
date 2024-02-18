@@ -73,7 +73,7 @@ class Node:
         amount = round(random.uniform(0.00001, float(self.get_amount(self.id))), 6)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
-        print(str(txn))
+        log.debug(str(txn))
         self.txn_pool.add(txn)
         self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn)
@@ -136,8 +136,10 @@ class Node:
             if true_balances.get(sender, 0) >= txn.amount:
                 txns_to_include.append(txn)
             else:
-                print(
-                    f"Invalid Transaction: Insufficient balance {true_balances.get(sender, 0)}, trying to pay {txn.amount}"
+                log.warning(
+                    "Invalid Transaction: Insufficient balance %s, trying to pay %s",
+                    true_balances.get(sender, 0),
+                    txn.amount
                 )
 
             # Don't exceed maximum block size limit
@@ -173,7 +175,7 @@ class Node:
             self.txn_pool.remove(txn)
 
         # Print the coinbase transaction
-        print(str(block.txns[0]))
+        log.debug(str(block.txns[0]))
         # Broadcast the block to neighbors
         self.block_broadcast(block)
         self.block_create()
@@ -221,7 +223,7 @@ class Node:
             if block.prev_hash != last_block_hash:
                 old_branch = self.longest_leaf_hash
                 new_branch = block.prev_hash
-                print(f"{self.id} Changing mining branch from {self.longest_leaf_hash} to {block.prev_hash}")
+                log.info("%s Changing mining branch from %s to %s", self.id, self.longest_leaf_hash, block.prev_hash)
 
                 while old_branch != new_branch:
                     old_block = self.block_registry[old_branch]
@@ -257,27 +259,27 @@ class Node:
         prev_blk_hash = block.prev_hash
         prev_blk = self.block_registry[prev_blk_hash]
         if prev_blk.height + 1 != block.height:
-            print(f"Invalid Block: Invalid Index {block.height}")
+            log.warning("Invalid Block: Invalid Index %s", block.height)
             return False
 
         # Validate Hash
         if block.hash != block.block_hash():
-            print(f"Invalid Block: Hash mismatch {block.height}")
+            log.warning("Invalid Block: Hash mismatch %s", block.height)
             return False
 
         # Validate Coinbase Transaction
         if len(block.txns) < 1:
-            print(f"Invalid Block: No Transactions {block.height}")
+            log.warning("Invalid Block: No Transactions %s", block.height)
             return False
 
         if len(block.txns) > self.network.max_txn_in_block:
-            print(f"Invalid Block: Block size exceeded limit {block.height}")
+            log.warning("Invalid Block: Block size exceeded limit %s", block.height)
             return False
 
         # Check if the mining reward is correct
         coinbase_txn = block.txns[0]
         if coinbase_txn.amount > self.network.mining_reward:  # Max Mining Reward
-            print(f"Invalid Block: Mining fee more than maximum mining fee, {coinbase_txn}")
+            log.warning("Invalid Block: Mining fee more than maximum mining fee, %s", coinbase_txn)
             return False
 
         # Validate Transactions
@@ -285,8 +287,11 @@ class Node:
         for txn in block.txns[1:]:
             sender = txn.sender_id
             if true_balances.get(sender, 0) < txn.amount:
-                print(
-                    f"Invalid Block: insufficient sender({sender}) balance, cache:{true_balances[sender]}, txn:{txn.amount}"
+                log.warning(
+                    "Invalid Block: insufficient sender(%s) balance, cache:%s, txn:%s",
+                    sender,
+                    true_balances[sender],
+                    txn.amount
                 )
                 return False
         return True

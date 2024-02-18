@@ -15,9 +15,11 @@ from log import log
 
 class Network:
     """Network class to execute simlation using a discrete-events"""
+
     instance = None  # used to include time in log statements
+
     def __init__(self, config, type):
-        """ "memeber to initialize attributes of network"""
+        """member to initialize attributes of network"""
         Network.instance = self  # used to include time in log statements
 
         self.nodes = []
@@ -27,7 +29,7 @@ class Network:
         self.num_low_cpu_nodes = 0
         self.time = 0.0
         self.event_queue = None
-        
+
         if type == "toml":
             # simulation
             self.total_nodes = int(config["simulation"]["total_nodes"])
@@ -64,21 +66,27 @@ class Network:
 
     def show_parameters(self):
         """method to display parameters of network"""
-
-        print(f" Simulation time: {self.execution_time}")
-        print(f" Total nodes: {self.total_nodes}")
-        print(f" Slow nodes percent: {self.percent_slow_nodes}")
-        print(f" Low cpu nodes percent: {self.percent_low_cpu_nodes}")
-        print(f" Min neighbors: {self.min_neighbors}")
-        print(f" Max neighbors: {self.max_neighbors}")
-        print(f" Transaction size: {self.transaction_size}")
-        print(f" Mean interarrival time: {self.mean_interarrival_time_sec}")
-        print(f" Min light prop delay: {self.min_light_prop_delay}")
-        print(f" Max light prop delay: {self.max_light_prop_delay}")
-        print(f" Slow node link speed: {self.slow_node_link_speed}")
-        print(f" Fast node link speed: {self.fast_node_link_speed}")
-        print(f" Queuing delay constant: {self.queuing_delay_constant}")
-        print(f" Mean mining time: {self.mean_mining_time_sec}")
+        print()
+        print("Simulation parameters:")
+        print(f" -- Simulation time: {self.execution_time}")
+        print(f" -- Total nodes: {self.total_nodes}")
+        print(f" -- Slow nodes percent: {self.percent_slow_nodes}")
+        print(f" -- Low cpu nodes percent: {self.percent_low_cpu_nodes}")
+        print(f" -- Output directory: {self.output_dir}")
+        print(f" -- Min neighbors: {self.min_neighbors}")
+        print(f" -- Max neighbors: {self.max_neighbors}")
+        print(f" -- Transaction size: {self.transaction_size}")
+        print(f" -- Mean interarrival time: {self.mean_interarrival_time_sec}")
+        print(f" -- Min light prop delay: {self.min_light_prop_delay}")
+        print(f" -- Max light prop delay: {self.max_light_prop_delay}")
+        print(f" -- Slow node link speed: {self.slow_node_link_speed}")
+        print(f" -- Fast node link speed: {self.fast_node_link_speed}")
+        print(f" -- Queuing delay constant: {self.queuing_delay_constant}")
+        print(f" -- Mean mining time: {self.mean_mining_time_sec}")
+        print(f" -- Mining reward: {self.mining_reward}")
+        print(f" -- Max txns in block: {self.max_txn_in_block}")
+        print(f" -- Random prop delay for this simulation: {round(self.prop_delay, 3)}")
+        print()
 
     def prepare_simulation(self):
         """method to create P2P network"""
@@ -91,6 +99,7 @@ class Network:
     def create_nodes(self):
         """method to create nodes of the network"""
 
+        print("Creating nodes...")
         # Create coinbase transactions to initialize balances
         genesis_transactions = [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
         genesis = Block(self.time, -1, 0, genesis_transactions)
@@ -110,7 +119,7 @@ class Network:
     def create_network_topology(self):
         """method to build connections between nodes"""
 
-        print("Building network... \n")
+        print("Building network...")
         while not (self.connected_graph and self.neighbor_constraint):
             self.reset_network()
 
@@ -118,14 +127,14 @@ class Network:
                 self.build_neighbors(node)
 
             if not self.neighbor_constraint:
-                print("Not every node has 3-6 neighbors, rebuilding... \n")
+                log.warning("Not every node has 3-6 neighbors, rebuilding...")
                 continue
 
             self.connected_graph = self.is_connected_graph()
             if not self.connected_graph:
-                print("Network topology not connected, rebuilding... \n")
+                log.warning("Network topology not connected, rebuilding...")
 
-        print("Network created \n")
+        print("Network created successfully")
 
     def reset_network(self):
         """method to delete network connections"""
@@ -171,6 +180,7 @@ class Network:
     def set_hashing_power(self):
         """ "method to set hashing power of nodes"""
 
+        print("Setting hashing power for each node...")
         # High hash power = 10 x Low hash power
         high_cpu_nodes = self.total_nodes - self.num_low_cpu_nodes
         low_hash_power = 1 / (10 * high_cpu_nodes + self.num_low_cpu_nodes)
@@ -184,27 +194,28 @@ class Network:
 
     def display_network(self):
         """method to display the network"""
+        print()
         for node in self.nodes:
             neighbor_ids = node.get_neighbors()
             print(
                 f"Node {node.id} [{'SLOW' if node.is_slow else 'FAST'}, {'LOW-CPU' if node.is_low_cpu else 'HIGH-CPU'}] is connected to: {neighbor_ids}"
             )
+        print()
 
     def start_simulation(self):
         """method to start simulation"""
 
-        print(f" == Genesis block: {self.nodes[0].genesis_block.hash} == \n")
+        print(f" -- Genesis block: {self.nodes[0].genesis_block.hash}\n")
 
         for node in self.nodes:
             node.transaction_create()
             node.block_create()
 
         while True:
-            log.debug("hiiiiiiiiiiii")
             if not self.event_queue.queue.empty():
                 event = self.event_queue.pop()
             else:
-                print("No more events")
+                log.info("No more events in event queue. Exiting Simulation.")
                 break
 
             # Update current time
@@ -212,25 +223,26 @@ class Network:
             receiver = self.nodes[event.receiver_id]
 
             if event.time > self.execution_time:
-                print("Simulation time is up")
+                log.info("Simulation time is up. Exiting Simulation.")
                 break
 
             if event.type == "txn_create":
-                print(str(event))
+                log.debug(str(event))
                 receiver.transaction_create_handler(event.time)
             elif event.type == "txn_recv":
+                # log.debug(str(event))
                 receiver.transaction_receive_handler(event.data, event.sender_id)
             elif event.type == "blk_mine":
-                print(str(event))
+                log.debug(str(event))
                 receiver.block_mine_handler(event.data)
             elif event.type == "blk_recv":
-                print(str(event))
+                # log.debug(str(event))
                 receiver.block_receive_handler(event.data, event.sender_id)
             else:
-                print("Unknown event type")
+                log.warning("Unknown event type")
                 break
 
-        print(f"Events in eventqueue: {self.event_queue.queue.qsize()}")
+        log.info("Events currently in event queue: %s", self.event_queue.queue.qsize())
 
         for node in self.nodes:
             print(f" node {node.id} has blocks: {[block for block in node.block_registry.keys()]}")
@@ -239,6 +251,7 @@ class Network:
     def create_plot(self):
         """method to visualize blockchain"""
 
+        log.info("Creating plot of blockchain of each node...")
         d = Digraph(
             "simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled", "fillcolor": "#FFFFE0"}
         )
@@ -268,6 +281,8 @@ class Network:
 
     def dump_to_file(self):
         """dump all the blocks of each node to a separate file"""
+
+        log.info("Dumping blocks of each node to a separate file...")
         path = os.path.join(os.path.dirname(__file__), self.output_dir)
         if not os.path.exists(path):
             os.makedirs(path)

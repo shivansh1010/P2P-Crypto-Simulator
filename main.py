@@ -27,17 +27,13 @@ Notes:
 
 import argparse
 import configparser
+import art
 
 from network import Network
 from log import log, init_logger
 
 
 if __name__ == "__main__":
-
-    init_logger("DEBUG")
-    log.warning("sdfsdf sdf sdf")
-    log.debug("sdfsdf sdf sdf")
-    log.info("sdfsdf sdf sdf")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("config_file", type=str, help="Configuration TOML file")
@@ -46,6 +42,13 @@ if __name__ == "__main__":
     config = configparser.ConfigParser()
     config.read(args.config_file)
 
+    LOG_LEVEL = "DEBUG" if config["simulation"]["debug"] == "True" else "INFO"
+    init_logger(LOG_LEVEL)
+
+    art.tprint('P2P Cryptocurrency\nNetwork Simulation', font='BifFig')
+    print('Welcome to the project!')
+    print('Selected configuration file: ', args.config_file)
+
     network = Network(config, type="toml")
     network.show_parameters()
     network.prepare_simulation()
@@ -53,3 +56,5 @@ if __name__ == "__main__":
     network.start_simulation()
     network.create_plot()
     network.dump_to_file()
+
+    log.info("Simulation completed successfully.")
