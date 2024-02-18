@@ -10,7 +10,7 @@ from transaction import Transaction
 from events import EventQueue
 from node import Node
 from block import Block
-from log import log
+from logger import log
 
 
 class Network:
@@ -198,7 +198,9 @@ class Network:
         for node in self.nodes:
             neighbor_ids = node.get_neighbors()
             print(
-                f"Node {node.id} [{'SLOW' if node.is_slow else 'FAST'}, {'LOW-CPU' if node.is_low_cpu else 'HIGH-CPU'}] is connected to: {neighbor_ids}"
+                f"Node {node.id} [{'slow' if node.is_slow else 'fast'}, "
+                f"{'low-cpu' if node.is_low_cpu else 'high-cpu'}, "
+                f"hash-power={round(node.hashing_power, 3)}] is connected to: {neighbor_ids}"
             )
         print()
 

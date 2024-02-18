@@ -7,7 +7,7 @@ import numpy as np
 from transaction import Transaction
 from events import Event
 from block import Block
-from log import log
+from logger import log
 
 
 class Node:
@@ -94,7 +94,9 @@ class Node:
             if source_node_id and node_id == source_node_id:
                 continue
             delay = self.compute_delay(self.network.transaction_size, node_id)
-            self.network.event_queue.push(Event(txn.timestamp + delay, self.id, node_id, "txn_recv", data=txn))
+            self.network.event_queue.push(
+                Event(txn.timestamp + delay, self.id, node_id, "txn_recv", data=deepcopy(txn))
+            )
 
     def get_amount(self, node):
         """return balance of node, obtained from traversing blockchain"""
@@ -139,7 +141,7 @@ class Node:
                 log.warning(
                     "Invalid Transaction: Insufficient balance %s, trying to pay %s",
                     true_balances.get(sender, 0),
-                    txn.amount
+                    txn.amount,
                 )
 
             # Don't exceed maximum block size limit
@@ -147,7 +149,7 @@ class Node:
                 break
 
         # Create the block with transactions
-        block = Block(self.network.time, parent_block_hash, parent_block_height + 1, txns_to_include)
+        block = Block(self.network.time, parent_block_hash, parent_block_height + 1, deepcopy(txns_to_include))
         # Introduce mining delay
         timestamp = self.network.time + np.random.exponential(self.network.mean_mining_time_sec / self.hashing_power)
 
@@ -291,7 +293,7 @@ class Node:
                     "Invalid Block: insufficient sender(%s) balance, cache:%s, txn:%s",
                     sender,
                     true_balances[sender],
-                    txn.amount
+                    txn.amount,
                 )
                 return False
         return True
@@ -303,4 +305,4 @@ class Node:
                 continue
             block_size = len(block.txns) * self.network.transaction_size
             delay = self.compute_delay(block_size, node_id)
-            self.network.event_queue.push(Event(self.network.time + delay, self, node_id, "blk_recv", data=block))
+            self.network.event_queue.push(Event(self.network.time + delay, self, node_id, "blk_recv", data=deepcopy(block)))

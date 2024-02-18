@@ -30,7 +30,7 @@ import configparser
 import art
 
 from network import Network
-from log import log, init_logger
+from logger import log, init_logger
 
 
 if __name__ == "__main__":
