@@ -10,20 +10,24 @@ from transaction import Transaction
 from events import EventQueue
 from node import Node
 from block import Block
+from log import log
 
 
 class Network:
     """Network class to execute simlation using a discrete-events"""
+    instance = None  # used to include time in log statements
     def __init__(self, config, type):
         """ "memeber to initialize attributes of network"""
+        Network.instance = self  # used to include time in log statements
+
         self.nodes = []
         self.neighbor_constraint = False
         self.connected_graph = False
         self.num_slow_nodes = 0
         self.num_low_cpu_nodes = 0
-        self.time = 0
+        self.time = 0.0
         self.event_queue = None
-
+        
         if type == "toml":
             # simulation
             self.total_nodes = int(config["simulation"]["total_nodes"])
@@ -196,6 +200,7 @@ class Network:
             node.block_create()
 
         while True:
+            log.debug("hiiiiiiiiiiii")
             if not self.event_queue.queue.empty():
                 event = self.event_queue.pop()
             else:

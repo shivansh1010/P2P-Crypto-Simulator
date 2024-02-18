@@ -27,10 +27,17 @@ Notes:
 
 import argparse
 import configparser
+
 from network import Network
+from log import log, init_logger
 
 
 if __name__ == "__main__":
+
+    init_logger("DEBUG")
+    log.warning("sdfsdf sdf sdf")
+    log.debug("sdfsdf sdf sdf")
+    log.info("sdfsdf sdf sdf")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("config_file", type=str, help="Configuration TOML file")

@@ -7,6 +7,7 @@ import numpy as np
 from transaction import Transaction
 from events import Event
 from block import Block
+from log import log
 
 
 class Node:
