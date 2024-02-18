@@ -74,7 +74,13 @@ class Node:
         amount = round(random.uniform(0.0, self_balance), 4)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
-        log.debug("Txn -> sender %s, receiver %s, amount %s, sender_balance %s", txn.sender_id, txn.receiver_id, txn.amount, self_balance)
+        log.debug(
+            "Txn_create -> sender %s, receiver %s, amount %s, sender_balance %s",
+            txn.sender_id,
+            txn.receiver_id,
+            txn.amount,
+            self_balance,
+        )
         self.txn_pool[txn.id] = txn
         self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn)
@@ -84,6 +90,14 @@ class Node:
         """method to handle txn receive event"""
         if txn.id in self.txn_registry or txn.id in self.txn_pool:
             return
+        # Commented out to reduce log verbosity
+        # log.debug(
+        #     "Txn_recv -> sender %s, receiver %s, amount %s, txn_time %s",
+        #     txn.sender_id,
+        #     txn.receiver_id,
+        #     txn.amount,
+        #     txn.timestamp,
+        # )
         self.txn_pool[txn.id] = txn
         self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn, source_node_id)
@@ -148,7 +162,7 @@ class Node:
         for txn in self.txn_pool.values():
             # Assuming honest block creator, Validate transaction
             sender = txn.sender_id
-            if true_balances.get(sender, 0) >= txn.amount:
+            if round(true_balances.get(sender, 0), 4) >= txn.amount:
                 txns_to_include.append(txn)
                 true_balances[txn.sender_id] -= txn.amount
                 true_balances[txn.receiver_id] += txn.amount
@@ -185,6 +199,16 @@ class Node:
 
         # block sucessfully mined now
         block.mine_time = self.network.time
+
+        log.info(
+            "Blk_mine -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+            self.id,
+            block.height,
+            block.hash_s,
+            block.prev_hash_s,
+            round(block.mine_time, 3),
+        )
+
         # Add the block hash to block registry
         self.block_registry[block.hash] = block
         # Update longest chain's leaf
@@ -232,8 +256,17 @@ class Node:
         if not self.is_block_valid(block):
             return
 
+        log.debug(
+            "Blk_recv -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+            self.id,
+            block.height,
+            block.hash_s,
+            block.prev_hash_s,
+            block.mine_time,
+        )
+
         # Add to block registry
-        self.block_registry[block.hash] = deepcopy(block)
+        self.block_registry[block.hash] = block
 
         # Remove these txns from txn_pool
         for txn in list(block.txns)[1:]:
@@ -246,7 +279,9 @@ class Node:
             if block.prev_hash != last_block_hash:
                 old_branch = self.longest_leaf_hash
                 new_branch = block.prev_hash
-                log.info("Node %s changing mining branch from %s to %s", self.id, self.longest_leaf_hash, block.prev_hash)
+                log.info(
+                    "Node %s changing mining branch from %s to %s", self.id, self.longest_leaf_hash, block.prev_hash
+                )
 
                 while old_branch != new_branch:
                     old_block = self.block_registry[old_branch]
@@ -329,4 +364,6 @@ class Node:
                 continue
             block_size = len(block.txns) * self.network.transaction_size
             delay = self.compute_delay(block_size, node_id)
-            self.network.event_queue.push(Event(self.network.time + delay, self, node_id, "blk_recv", data=deepcopy(block)))
+            self.network.event_queue.push(
+                Event(self.network.time + delay, self, node_id, "blk_recv", data=deepcopy(block))
+            )

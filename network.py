@@ -6,7 +6,6 @@ from collections import deque
 import numpy as np
 from graphviz import Digraph
 
-from transaction import Transaction
 from events import EventQueue
 from node import Node
 from block import Block
@@ -275,7 +274,7 @@ class Network:
                 if curr_block.txns[0].receiver_id == node.id:
                     accepted_self_mined_blocks += 1
                 curr_block_hash = node.block_registry[curr_block_hash].prev_hash
-            ratio = accepted_self_mined_blocks / total_mined_blocks
+            ratio = accepted_self_mined_blocks / total_mined_blocks if total_mined_blocks != 0 else float('inf')
             print(
                 f"Node {node.id}: Ratio of mined blocks in longest chain to total mined blocks: {accepted_self_mined_blocks} / {total_mined_blocks} = {ratio}"
             )
