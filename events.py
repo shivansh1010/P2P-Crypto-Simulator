@@ -34,6 +34,4 @@ class Event:
         return self.time < other.time
 
     def __str__(self):
-        return (
-            f" Event -> time {round(self.time, 4)} sender {self.sender_id} receiver {self.receiver_id} type {self.type}"
-        )
+        return f"Event -> type={self.type} sender={self.sender_id} receiver={self.receiver_id}"

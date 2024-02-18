@@ -19,7 +19,7 @@ class Node:
         self.is_slow = is_slow
         self.is_low_cpu = is_low_cpu
         self.neighbors = set()  # Set of nodes that are connected to this node
-        self.txn_pool = set()  # Set of transactions that have to be processed
+        self.txn_pool = {}  # uuid -> txn, Dict of transactions that have to be processed
         self.txn_registry = set()  # Set of ids of all the transactions seen
         self.pending_blocks = set()  # Set of blocks whose previous block hasn't arrived
 
@@ -70,20 +70,21 @@ class Node:
         receiver_id = random.choice(self.get_neighbors())
         while self.id == receiver_id:
             receiver_id = random.choice(self.get_neighbors())
-        amount = round(random.uniform(0.00001, float(self.get_amount(self.id))), 6)
+        self_balance = round(float(self.get_amount(self.id)), 4)
+        amount = round(random.uniform(0.0, self_balance), 4)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
-        log.debug(str(txn))
-        self.txn_pool.add(txn)
+        log.debug("Txn -> sender %s, receiver %s, amount %s, sender_balance %s", txn.sender_id, txn.receiver_id, txn.amount, self_balance)
+        self.txn_pool[txn.id] = txn
         self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn)
         self.transaction_create()
 
     def transaction_receive_handler(self, txn, source_node_id):
         """method to handle txn receive event"""
-        if txn.id in self.txn_registry or txn in self.txn_pool:
+        if txn.id in self.txn_registry or txn.id in self.txn_pool:
             return
-        self.txn_pool.add(txn)
+        self.txn_pool[txn.id] = txn
         self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn, source_node_id)
 
@@ -109,18 +110,30 @@ class Node:
                 if node == txn.sender_id:
                     total_balance -= txn.amount
             curr_block = self.block_registry[curr_block].prev_hash
+
+        for txn in self.txn_pool.values():
+            if node == txn.receiver_id:
+                total_balance += txn.amount
+            if node == txn.sender_id:
+                total_balance -= txn.amount
+
         return max(0.0, total_balance)
 
     def get_balances(self, block_hash):
         """ "returns a dictionary containing balances of each node"""
 
         balances = {}
+        for node in self.network.nodes:
+            balances[node.id] = 0.0
+
         curr_block = block_hash
         while curr_block != -1:
             for txn in self.block_registry[curr_block].txns:
                 balances[txn.receiver_id] = balances.get(txn.receiver_id, 0) + txn.amount
                 balances[txn.sender_id] = balances.get(txn.sender_id, 0) - txn.amount
             curr_block = self.block_registry[curr_block].prev_hash
+        if None in balances:
+            del balances[None]
         return balances
 
     def block_create(self):
@@ -132,16 +145,21 @@ class Node:
         txns_to_include = [coinbase_txn]
 
         true_balances = self.get_balances(parent_block_hash)
-        for txn in self.txn_pool:
+        for txn in self.txn_pool.values():
             # Assuming honest block creator, Validate transaction
             sender = txn.sender_id
             if true_balances.get(sender, 0) >= txn.amount:
                 txns_to_include.append(txn)
+                true_balances[txn.sender_id] -= txn.amount
+                true_balances[txn.receiver_id] += txn.amount
             else:
                 log.warning(
-                    "Invalid Transaction: Insufficient balance %s, trying to pay %s",
-                    true_balances.get(sender, 0),
+                    "Invalid Txn while mining, Insufficient balance: sender %s, receiver %s, amount %s, sender_balance %s, time %s",
+                    txn.sender_id,
+                    txn.receiver_id,
                     txn.amount,
+                    true_balances.get(sender, 0),
+                    txn.timestamp,
                 )
 
             # Don't exceed maximum block size limit
@@ -174,10 +192,13 @@ class Node:
 
         # Remove the block transactions from transaction pool
         for txn in list(block.txns)[1:]:
-            self.txn_pool.remove(txn)
+            # self.txn_pool.remove(txn)
+            del self.txn_pool[txn.id]
 
         # Print the coinbase transaction
-        log.debug(str(block.txns[0]))
+        # log.debug(str(block.txns[0]))
+        log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
+
         # Broadcast the block to neighbors
         self.block_broadcast(block)
         self.block_create()
@@ -216,8 +237,8 @@ class Node:
 
         # Remove these txns from txn_pool
         for txn in list(block.txns)[1:]:
-            if txn in self.txn_pool:
-                self.txn_pool.remove(txn)
+            if txn.id in self.txn_pool:
+                del self.txn_pool[txn.id]
 
         # Find the longest chain and add the block accordingly
         if block.height > last_block.height:
@@ -225,7 +246,7 @@ class Node:
             if block.prev_hash != last_block_hash:
                 old_branch = self.longest_leaf_hash
                 new_branch = block.prev_hash
-                log.info("%s Changing mining branch from %s to %s", self.id, self.longest_leaf_hash, block.prev_hash)
+                log.info("Node %s changing mining branch from %s to %s", self.id, self.longest_leaf_hash, block.prev_hash)
 
                 while old_branch != new_branch:
                     old_block = self.block_registry[old_branch]
@@ -233,11 +254,11 @@ class Node:
 
                     # Undo transactions of old branch
                     for txn in old_block.txns[1:]:
-                        self.txn_pool.add(txn)
+                        self.txn_pool[txn.id] = txn
                     # Redo transactions of new branch
                     for txn in new_block.txns[1:]:
                         if txn in self.txn_pool:
-                            self.txn_pool.remove(txn)
+                            del self.txn_pool[txn.id]
 
                     old_branch = old_block.prev_hash
                     new_branch = new_block.prev_hash
@@ -261,27 +282,27 @@ class Node:
         prev_blk_hash = block.prev_hash
         prev_blk = self.block_registry[prev_blk_hash]
         if prev_blk.height + 1 != block.height:
-            log.warning("Invalid Block: Invalid Index %s", block.height)
+            log.warning("Received Invalid Block: Invalid Index %s", block.height)
             return False
 
         # Validate Hash
         if block.hash != block.block_hash():
-            log.warning("Invalid Block: Hash mismatch %s", block.height)
+            log.warning("Received Invalid Block: Hash mismatch %s", block.height)
             return False
 
         # Validate Coinbase Transaction
         if len(block.txns) < 1:
-            log.warning("Invalid Block: No Transactions %s", block.height)
+            log.warning("Received Invalid Block: No Transactions %s", block.height)
             return False
 
         if len(block.txns) > self.network.max_txn_in_block:
-            log.warning("Invalid Block: Block size exceeded limit %s", block.height)
+            log.warning("Received Invalid Block: Block size exceeded limit %s", block.height)
             return False
 
         # Check if the mining reward is correct
         coinbase_txn = block.txns[0]
         if coinbase_txn.amount > self.network.mining_reward:  # Max Mining Reward
-            log.warning("Invalid Block: Mining fee more than maximum mining fee, %s", coinbase_txn)
+            log.warning("Received Invalid Block: Mining fee more than maximum mining fee, %s", coinbase_txn)
             return False
 
         # Validate Transactions
@@ -290,12 +311,15 @@ class Node:
             sender = txn.sender_id
             if true_balances.get(sender, 0) < txn.amount:
                 log.warning(
-                    "Invalid Block: insufficient sender(%s) balance, cache:%s, txn:%s",
+                    "Received Invalid Block: insufficient sender(%s) balance, cache:%s, txn:%s",
                     sender,
                     true_balances[sender],
                     txn.amount,
                 )
                 return False
+            else:
+                true_balances[txn.sender_id] -= txn.amount
+                true_balances[txn.receiver_id] += txn.amount
         return True
 
     def block_broadcast(self, block, source_node_id=None):

@@ -30,7 +30,7 @@ import configparser
 import art
 
 from network import Network
-from logger import log, init_logger
+from logger import init_logger
 
 
 if __name__ == "__main__":
@@ -47,14 +47,15 @@ if __name__ == "__main__":
 
     art.tprint('P2P Cryptocurrency\nNetwork Simulation', font='BifFig')
     print('Welcome to the project!')
-    print('Selected configuration file: ', args.config_file)
+    print('\nSelected configuration file: ', args.config_file)
 
     network = Network(config, type="toml")
     network.show_parameters()
     network.prepare_simulation()
     network.display_network()
-    network.start_simulation()
+    network.start_simulation() # main simulation
+    network.display_info()
     network.create_plot()
     network.dump_to_file()
 
-    log.info("Simulation completed successfully.")
+    print("Simulation completed successfully :)")

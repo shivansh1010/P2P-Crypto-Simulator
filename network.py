@@ -66,7 +66,6 @@ class Network:
 
     def show_parameters(self):
         """method to display parameters of network"""
-        print()
         print("Simulation parameters:")
         print(f" -- Simulation time: {self.execution_time}")
         print(f" -- Total nodes: {self.total_nodes}")
@@ -101,7 +100,7 @@ class Network:
 
         print("Creating nodes...")
         # Create coinbase transactions to initialize balances
-        genesis_transactions = [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
+        genesis_transactions = []  # [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
         genesis = Block(self.time, -1, 0, genesis_transactions)
         for i in range(self.total_nodes):
             speed_threshold = np.random.uniform(0, 1)
@@ -209,6 +208,7 @@ class Network:
 
         print(f" -- Genesis block: {self.nodes[0].genesis_block.hash}\n")
 
+        log.info("Simulation starts...")
         for node in self.nodes:
             node.transaction_create()
             node.block_create()
@@ -229,13 +229,13 @@ class Network:
                 break
 
             if event.type == "txn_create":
-                log.debug(str(event))
+                # log.debug(str(event))
                 receiver.transaction_create_handler(event.time)
             elif event.type == "txn_recv":
                 # log.debug(str(event))
                 receiver.transaction_receive_handler(event.data, event.sender_id)
             elif event.type == "blk_mine":
-                log.debug(str(event))
+                # log.debug(str(event))
                 receiver.block_mine_handler(event.data)
             elif event.type == "blk_recv":
                 # log.debug(str(event))
@@ -244,16 +244,47 @@ class Network:
                 log.warning("Unknown event type")
                 break
 
-        log.info("Events currently in event queue: %s", self.event_queue.queue.qsize())
+    def display_info(self):
+        """display info about the simulation"""
+        print()
+        print("Events currently in event queue: ", self.event_queue.queue.qsize())
 
+        all_blocks = set()
         for node in self.nodes:
-            print(f" node {node.id} has blocks: {[block for block in node.block_registry.keys()]}")
-            print(f" node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}")
+            all_blocks = all_blocks.union(set(node.block_registry.keys()))
+        print(f"Total number of blocks mined by all nodes: {len(all_blocks)}")
+
+        # for node in self.nodes:
+        # print(f" node {node.id} has blocks: {list(node.block_registry.keys())}")
+        # print(f"Node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}, hash {node.longest_leaf_hash[:7]}"
+        print()
+        for node in self.nodes:
+            accepted_self_mined_blocks = 0
+            total_mined_blocks = 0
+            for block in node.block_registry.values():
+                if len(block.txns) == 0:
+                    continue
+                if block.txns[0].receiver_id == node.id:
+                    total_mined_blocks += 1
+
+            curr_block_hash = node.longest_leaf_hash
+            while curr_block_hash != -1:
+                curr_block = node.block_registry[curr_block_hash]
+                if len(curr_block.txns) == 0:
+                    break
+                if curr_block.txns[0].receiver_id == node.id:
+                    accepted_self_mined_blocks += 1
+                curr_block_hash = node.block_registry[curr_block_hash].prev_hash
+            ratio = accepted_self_mined_blocks / total_mined_blocks
+            print(
+                f"Node {node.id}: Ratio of mined blocks in longest chain to total mined blocks: {accepted_self_mined_blocks} / {total_mined_blocks} = {ratio}"
+            )
+        print()
 
     def create_plot(self):
         """method to visualize blockchain"""
 
-        log.info("Creating plot of blockchain of each node...")
+        print("Creating plot of blockchain of each node...")
         d = Digraph(
             "simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled", "fillcolor": "#FFFFE0"}
         )
@@ -284,7 +315,7 @@ class Network:
     def dump_to_file(self):
         """dump all the blocks of each node to a separate file"""
 
-        log.info("Dumping blocks of each node to a separate file...")
+        print("Dumping blocks of each node to a separate file...")
         path = os.path.join(os.path.dirname(__file__), self.output_dir)
         if not os.path.exists(path):
             os.makedirs(path)
