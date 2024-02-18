@@ -247,7 +247,7 @@ class Network:
                 break
         
         end_time = time.time()
-        print(f"\nSimulation time: {end_time - start_time} seconds")
+        print(f"\nSimulation time: {round(end_time - start_time, 3)} seconds")
 
     def display_info(self):
         """display info about the simulation"""

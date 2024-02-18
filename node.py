@@ -172,8 +172,8 @@ class Node:
                     txn.sender_id,
                     txn.receiver_id,
                     txn.amount,
-                    true_balances.get(sender, 0),
-                    txn.timestamp,
+                    round(true_balances.get(sender, 0), 4),
+                    round(txn.timestamp, 3),
                 )
 
             # Don't exceed maximum block size limit
