@@ -74,13 +74,15 @@ class Node:
         amount = round(random.uniform(0.0, self_balance), 4)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
-        log.debug(
-            "Txn_create -> sender %s, receiver %s, amount %s, sender_balance %s",
-            txn.sender_id,
-            txn.receiver_id,
-            txn.amount,
-            self_balance,
-        )
+        # log.debug(
+        #     "Txn_create -> sender %s, receiver %s, amount %s, sender_balance %s",
+        #     txn.sender_id,
+        #     txn.receiver_id,
+        #     txn.amount,
+        #     self_balance,
+        # )
+        log.info(txn.__str_v2__())
+
         self.txn_pool[txn.id] = txn
         self.txn_registry.add(txn.id)
         self.transaction_broadcast(txn)
@@ -125,11 +127,11 @@ class Node:
                     total_balance -= txn.amount
             curr_block = self.block_registry[curr_block].prev_hash
 
-        for txn in self.txn_pool.values():
-            if node == txn.receiver_id:
-                total_balance += txn.amount
-            if node == txn.sender_id:
-                total_balance -= txn.amount
+        # for txn in self.txn_pool.values():
+        #     if node == txn.receiver_id:
+        #         total_balance += txn.amount
+        #     if node == txn.sender_id:
+        #         total_balance -= txn.amount
 
         return max(0.0, total_balance)
 
@@ -146,6 +148,11 @@ class Node:
                 balances[txn.receiver_id] = balances.get(txn.receiver_id, 0) + txn.amount
                 balances[txn.sender_id] = balances.get(txn.sender_id, 0) - txn.amount
             curr_block = self.block_registry[curr_block].prev_hash
+
+        # for txn in self.txn_pool.values():
+        #     balances[txn.receiver_id] += txn.amount
+        #     balances[txn.sender_id] -= txn.amount
+
         if None in balances:
             del balances[None]
         return balances
@@ -167,14 +174,16 @@ class Node:
                 true_balances[txn.sender_id] -= txn.amount
                 true_balances[txn.receiver_id] += txn.amount
             else:
-                log.warning(
-                    "Invalid Txn while mining, Insufficient balance: sender %s, receiver %s, amount %s, sender_balance %s, time %s",
-                    txn.sender_id,
-                    txn.receiver_id,
-                    txn.amount,
-                    round(true_balances.get(sender, 0), 4),
-                    round(txn.timestamp, 3),
-                )
+                # log.warning(
+                #     "Invalid Txn while mining, Insufficient balance: sender %s, receiver %s, amount %s, sender_balance %s, time %s",
+                #     txn.sender_id,
+                #     txn.receiver_id,
+                #     txn.amount,
+                #     round(true_balances.get(sender, 0), 4),
+                #     round(txn.timestamp, 3),
+                # )
+                pass
+                # true_balances = self.get_balances(parent_block_hash)
 
             # Don't exceed maximum block size limit
             if len(txns_to_include) >= self.network.max_txn_in_block:
@@ -200,7 +209,7 @@ class Node:
         # block sucessfully mined now
         block.mine_time = self.network.time
 
-        log.info(
+        log.debug(
             "Blk_mine -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
             self.id,
             block.height,
@@ -222,6 +231,7 @@ class Node:
         # Print the coinbase transaction
         # log.debug(str(block.txns[0]))
         log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
+        log.info(block.txns[0].__str_v2__())
 
         # Broadcast the block to neighbors
         self.block_broadcast(block)
@@ -290,6 +300,7 @@ class Node:
                     # Undo transactions of old branch
                     for txn in old_block.txns[1:]:
                         self.txn_pool[txn.id] = txn
+
                     # Redo transactions of new branch
                     for txn in new_block.txns[1:]:
                         if txn in self.txn_pool:
@@ -297,6 +308,9 @@ class Node:
 
                     old_branch = old_block.prev_hash
                     new_branch = new_block.prev_hash
+
+                # sort the txn_pool here according to timestamp
+                self.txn_pool = dict(sorted(self.txn_pool.items(), key=lambda x: x[1].timestamp))
 
             self.longest_leaf_hash = block.hash
 

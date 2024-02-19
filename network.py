@@ -208,7 +208,6 @@ class Network:
 
         print(f" -- Genesis block: {self.nodes[0].genesis_block.hash}\n")
 
-
         start_time = time.time()
         log.info("Simulation starts...")
         for node in self.nodes:
@@ -245,7 +244,7 @@ class Network:
             else:
                 log.warning("Unknown event type")
                 break
-        
+
         end_time = time.time()
         print(f"\nSimulation time: {round(end_time - start_time, 3)} seconds")
 
@@ -262,6 +261,7 @@ class Network:
         # print(f" node {node.id} has blocks: {list(node.block_registry.keys())}")
         # print(f"Node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}, hash {node.longest_leaf_hash[:7]}"
         print()
+        print("Ratio of mined blocks included in longest chain to total mined blocks by the node:")
         for node in self.nodes:
             accepted_self_mined_blocks = 0
             total_mined_blocks = 0
@@ -279,9 +279,13 @@ class Network:
                 if curr_block.txns[0].receiver_id == node.id:
                     accepted_self_mined_blocks += 1
                 curr_block_hash = node.block_registry[curr_block_hash].prev_hash
-            ratio = accepted_self_mined_blocks / total_mined_blocks if total_mined_blocks != 0 else float('inf')
+            ratio = round(
+                accepted_self_mined_blocks / total_mined_blocks if total_mined_blocks != 0 else float("inf"), 4
+            )
+            cpu_type = "low-cpu" if node.is_low_cpu else "high-cpu"
+            node_type = "slow" if node.is_slow else "fast"
             print(
-                f"Node {node.id}: Ratio of mined blocks in longest chain to total mined blocks: {accepted_self_mined_blocks} / {total_mined_blocks} = {ratio}"
+                f"Node {node.id} ({cpu_type}, {node_type}):  {accepted_self_mined_blocks} / {total_mined_blocks} = {ratio}"
             )
         print()
 
