@@ -1,3 +1,4 @@
+art==6.1
 configparser==6.0.0
 graphviz==0.20.1
 numpy==1.25.2

@@ -7,7 +7,7 @@ class Transaction:
     """class to represent a transaction in the blockchain network"""
     def __init__(self, ts, amount, sender_id, receiver_id):
         """"method to initialize attributes of transaction"""
-        self.id = uuid4()
+        self.id = str(uuid4())
         self.timestamp = ts
         self.sender_id = sender_id
         self.receiver_id = receiver_id
