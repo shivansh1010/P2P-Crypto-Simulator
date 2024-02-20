@@ -296,7 +296,7 @@ class Network:
         d = Digraph(
             "simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled", "fillcolor": "#FFFFE0"}
         )
-        d.graph_attr["rankdir"] = "LR"
+        d.graph_attr["rankdir"] = "RL"
         for i, node in enumerate(reversed(self.nodes)):
             with d.subgraph(
                 name=f"cluster_outer_{i}"
@@ -308,7 +308,7 @@ class Network:
                         color="none",
                         fillcolor="#E6F7FF",
                         labelloc="b",
-                        labeljust="l",
+                        labeljust="r",
                         label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >',
                     )
                     for block in node.block_registry.values():
@@ -316,7 +316,7 @@ class Network:
                         label = f"{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
                         c.node(f"{node.id}-{block.hash}", label=label)
                         if block.prev_hash != -1:
-                            c.edge(f"{node.id}-{block.prev_hash}", f"{node.id}-{block.hash}")
+                            c.edge(f"{node.id}-{block.hash}", f"{node.id}-{block.prev_hash}")
 
         d.view(directory=self.output_dir)
 
