@@ -18,6 +18,7 @@ class Node:
         self.id = id
         self.is_slow = is_slow
         self.is_low_cpu = is_low_cpu
+        self.is_adversary = False  # if the node is an adversary (selfish miner)
         self.neighbors = set()  # Set of nodes that are connected to this node
         self.txn_pool = {}  # uuid -> txn, Dict of transactions that have to be processed
         self.txn_registry = set()  # Set of ids of all the transactions seen

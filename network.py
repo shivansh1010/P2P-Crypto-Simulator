@@ -41,6 +41,8 @@ class Network:
             # node
             self.min_neighbors = int(config["node"]["min_neighbors"])
             self.max_neighbors = int(config["node"]["max_neighbors"])
+            self.adversary_one_mining_power = float(config["node"]["adversary_one_mining_power"])
+            self.adversary_two_mining_power = float(config["node"]["adversary_two_mining_power"])
 
             # transaction
             self.transaction_size = int(config["transaction"]["size"])
@@ -74,6 +76,8 @@ class Network:
         print(f" -- Output directory: {self.output_dir}")
         print(f" -- Min neighbors: {self.min_neighbors}")
         print(f" -- Max neighbors: {self.max_neighbors}")
+        print(f" -- Adversary one mining power: {self.adversary_one_mining_power}")
+        print(f" -- Adversary two mining power: {self.adversary_two_mining_power}")
         print(f" -- Transaction size: {self.transaction_size}")
         print(f" -- Mean interarrival time: {self.mean_interarrival_time_sec}")
         print(f" -- Min light prop delay: {self.min_light_prop_delay}")
@@ -102,7 +106,7 @@ class Network:
         # Create coinbase transactions to initialize balances
         genesis_transactions = []  # [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
         genesis = Block(self.time, -1, 0, genesis_transactions)
-        for i in range(self.total_nodes):
+        for i in range(self.total_nodes-2):
             speed_threshold = np.random.uniform(0, 1)
             cpu_threshold = np.random.uniform(0, 1)
             is_slow = speed_threshold <= (self.percent_slow_nodes / 100.0)
@@ -114,6 +118,15 @@ class Network:
                 self.num_low_cpu_nodes += 1
             node = Node(i, is_slow, is_low_cpu, self, genesis)
             self.nodes.append(node)
+        
+        # Create adversary nodes
+        node = Node(self.total_nodes-2, False, False, self, genesis)
+        node.hashing_power = self.adversary_one_mining_power
+        self.nodes.append(node)
+        node = Node(self.total_nodes-1, False, False, self, genesis)
+        node.hashing_power = self.adversary_two_mining_power
+        self.nodes.append(node)
+        
 
     def create_network_topology(self):
         """method to build connections between nodes"""
