@@ -74,14 +74,14 @@ class Node:
         amount = round(random.uniform(0.0, self_balance), 4)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
-        # log.debug(
-        #     "Txn_create -> sender %s, receiver %s, amount %s, sender_balance %s",
-        #     txn.sender_id,
-        #     txn.receiver_id,
-        #     txn.amount,
-        #     self_balance,
-        # )
-        log.info(txn.__str_v2__())
+        log.debug(
+            "Txn_create -> sender %s, receiver %s, amount %s, sender_balance %s",
+            txn.sender_id,
+            txn.receiver_id,
+            txn.amount,
+            self_balance,
+        )
+        # log.info(txn.__str_v2__())
 
         self.txn_pool[txn.id] = txn
         self.txn_registry.add(txn.id)
@@ -209,7 +209,7 @@ class Node:
         # block sucessfully mined now
         block.mine_time = self.network.time
 
-        log.debug(
+        log.info(
             "Blk_mine -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
             self.id,
             block.height,
@@ -231,7 +231,7 @@ class Node:
         # Print the coinbase transaction
         # log.debug(str(block.txns[0]))
         log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
-        log.info(block.txns[0].__str_v2__())
+        # log.info(block.txns[0].__str_v2__())
 
         # Broadcast the block to neighbors
         self.block_broadcast(block)

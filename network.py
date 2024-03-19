@@ -146,7 +146,6 @@ class Network:
         """method to create neighbors of a node"""
 
         num_neighbors = random.randint(self.min_neighbors, self.max_neighbors)
-        # print(f"{node.id} NEIGHBORS: {num_neighbors}")
         available_nodes = [
             p for p in self.nodes if p != node and len(p.neighbors) < self.max_neighbors and p not in node.neighbors
         ]
