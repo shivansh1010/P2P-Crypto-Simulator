@@ -9,6 +9,7 @@ from graphviz import Digraph
 
 from events import EventQueue
 from node import Node
+from node_adversary import AdversaryNode
 from block import Block
 from logger import log
 
@@ -104,7 +105,7 @@ class Network:
 
         print("Creating nodes...")
         # Create coinbase transactions to initialize balances
-        genesis_transactions = []  # [Transaction(self.time, 1000, None, id) for id in range(self.total_nodes)]
+        genesis_transactions = []
         genesis = Block(self.time, -1, 0, genesis_transactions)
         for i in range(self.total_nodes-2):
             speed_threshold = np.random.uniform(0, 1)
@@ -120,11 +121,11 @@ class Network:
             self.nodes.append(node)
         
         # Create adversary nodes
-        node = Node(self.total_nodes-2, False, False, self, genesis)
-        node.hashing_power = self.adversary_one_mining_power
+        node = AdversaryNode(self.total_nodes-2, False, False, self, genesis)
+        node.hashing_power = self.adversary_one_mining_power/100.0
         self.nodes.append(node)
-        node = Node(self.total_nodes-1, False, False, self, genesis)
-        node.hashing_power = self.adversary_two_mining_power
+        node = AdversaryNode(self.total_nodes-1, False, False, self, genesis)
+        node.hashing_power = self.adversary_two_mining_power/100.0
         self.nodes.append(node)
         
 
@@ -194,11 +195,14 @@ class Network:
         print("Setting hashing power for each node...")
         # High hash power = 10 x Low hash power
         high_cpu_nodes = self.total_nodes - self.num_low_cpu_nodes
-        low_hash_power = 1 / (10 * high_cpu_nodes + self.num_low_cpu_nodes)
+        total_honest_hashing_power = 1 - (self.adversary_one_mining_power + self.adversary_two_mining_power)/100
+        low_hash_power = total_honest_hashing_power / (10 * high_cpu_nodes + self.num_low_cpu_nodes)
         high_hash_power = 10 * low_hash_power
 
         for node in self.nodes:
-            if node.is_low_cpu:
+            if isinstance(node, AdversaryNode):
+                continue
+            elif node.is_low_cpu:
                 node.hashing_power = low_hash_power
             else:
                 node.hashing_power = high_hash_power
