@@ -38,6 +38,7 @@ class Network:
             self.percent_slow_nodes = float(config["simulation"]["percent_slow_nodes"])
             self.percent_low_cpu_nodes = float(config["simulation"]["percent_low_cpu_nodes"])
             self.output_dir = config["simulation"]["output_dir"]
+            self.dark_mode = config["simulation"]["dark_mode"]
 
             # node
             self.min_neighbors = int(config["node"]["min_neighbors"])
@@ -308,8 +309,21 @@ class Network:
         """method to visualize blockchain"""
 
         print("Creating plot of blockchain of each node...")
+
+        colors = {
+            "bgcolor": "#11151b" if self.dark_mode == "True" else "white",
+            "fillcolor": "#222730" if self.dark_mode == "True" else "#E6F7FF",
+            "nodelabel": "white" if self.dark_mode == "True" else "black",
+            "edge": "#999999" if self.dark_mode == "True" else "black",
+            "block_default": "#45494e" if self.dark_mode == "True" else "#FFFFDD",
+            "block_adv_one": "#5e2e33" if self.dark_mode == "True" else "#FFBBBB",
+            "block_adv_two": "#2f2d96" if self.dark_mode == "True" else "#BBBBFF",
+            "block_text": "white" if self.dark_mode == "True" else "black",
+        }
+
         d = Digraph("simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled"})
         d.graph_attr["rankdir"] = "LR"
+        d.graph_attr["bgcolor"] = colors["bgcolor"]
         adversary_node_ids = []
         for node in self.nodes:
             if isinstance(node, AdversaryNode):
@@ -321,22 +335,23 @@ class Network:
             ) as outer:  # Adding a cluster inside cluster to increase margin between them
                 outer.attr(style="invis")
                 with outer.subgraph(name=f"cluster_{i}", graph_attr={"margin": "30"}) as c:
+                    adversary_label = " - Adversary" if node.id in adversary_node_ids else ""
                     c.attr(
                         style="filled",
                         color="none",
-                        fillcolor="#E6F7FF",
+                        fillcolor=colors["fillcolor"],
                         labelloc="b",
                         labeljust="l",
-                        label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >',
+                        label=f'< <FONT POINT-SIZE="20" COLOR="{colors["nodelabel"]}"><B>Node {node.id}{adversary_label}</B></FONT> >',
                     )
                     for block in node.block_registry.values():
                         miner = block.txns[0].receiver_id if block.txns else "Satoshi"
                         label = f"{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
-                        fillcolor = "#FFBBBB" if miner == adversary_node_ids[0] else "#FFFFDD"
-                        fillcolor = "#BBBBFF" if miner == adversary_node_ids[1] else fillcolor
-                        c.node(f"{node.id}-{block.hash}", label=label, _attributes={"fillcolor": fillcolor})
+                        fillcolor = colors["block_adv_one"] if miner == adversary_node_ids[0] else colors["block_default"]
+                        fillcolor = colors["block_adv_two"] if miner == adversary_node_ids[1] else fillcolor
+                        c.node(f"{node.id}-{block.hash}", label=label, _attributes={"fillcolor": fillcolor, "fontcolor": colors["block_text"], "color": colors["edge"]})
                         if block.prev_hash != -1:
-                            c.edge(f"{node.id}-{block.prev_hash}", f"{node.id}-{block.hash}", dir="back")
+                            c.edge(f"{node.id}-{block.prev_hash}", f"{node.id}-{block.hash}", dir="back", color=colors["edge"])
 
         d.view(directory=self.output_dir)
 

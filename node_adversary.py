@@ -144,14 +144,14 @@ class AdversaryNode(Node):
         if not self.is_block_valid(block):
             return
 
-        log.debug(
-            "Blk_recv -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
-            self.id,
-            block.height,
-            block.hash_s,
-            block.prev_hash_s,
-            block.mine_time,
-        )
+        # log.debug(
+        #     "Blk_recv -> receiver %s, height %s, hash %s, prev_hash %s, mine_time %s",
+        #     self.id,
+        #     block.height,
+        #     block.hash_s,
+        #     block.prev_hash_s,
+        #     block.mine_time,
+        # )
 
         # Add to block registry
         self.block_registry[block.hash] = block
@@ -211,6 +211,14 @@ class AdversaryNode(Node):
         elif block_lead > 2:
             # Release one block at start of private chain
             adversary_block = self.block_registry[self.private_chain.popleft()]
+            log.debug(
+                "Blk_broadcast -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+                adversary_block.txns[0].receiver_id,
+                adversary_block.height,
+                adversary_block.hash_s,
+                adversary_block.prev_hash_s,
+                adversary_block.mine_time,
+            )
             self.block_broadcast(adversary_block, source_node_id)
 
         self.block_hash_being_mined = None
@@ -224,4 +232,12 @@ class AdversaryNode(Node):
         while self.private_chain:
             block_hash = self.private_chain.popleft()
             block = self.block_registry[block_hash]
+            log.debug(
+                "Blk_broadcast -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+                block.txns[0].receiver_id,
+                block.height,
+                block.hash_s,
+                block.prev_hash_s,
+                block.mine_time,
+            )
             self.block_broadcast(block)

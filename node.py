@@ -75,13 +75,13 @@ class Node:
         amount = round(random.uniform(0.0, self_balance), 4)
         txn = Transaction(event_timestamp, amount, self.id, receiver_id)
 
-        log.debug(
-            "Txn_create -> sender %s, receiver %s, amount %s, sender_balance %s",
-            txn.sender_id,
-            txn.receiver_id,
-            txn.amount,
-            self_balance,
-        )
+        # log.debug(
+        #     "Txn_create -> sender %s, receiver %s, amount %s, sender_balance %s",
+        #     txn.sender_id,
+        #     txn.receiver_id,
+        #     txn.amount,
+        #     self_balance,
+        # )
         # log.info(txn.__str_v2__())
 
         self.txn_pool[txn.id] = txn
@@ -267,14 +267,14 @@ class Node:
         if not self.is_block_valid(block):
             return
 
-        log.debug(
-            "Blk_recv -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
-            self.id,
-            block.height,
-            block.hash_s,
-            block.prev_hash_s,
-            block.mine_time,
-        )
+        # log.debug(
+        #     "Blk_recv -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+        #     self.id,
+        #     block.height,
+        #     block.hash_s,
+        #     block.prev_hash_s,
+        #     block.mine_time,
+        # )
 
         # Add to block registry
         self.block_registry[block.hash] = block
