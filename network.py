@@ -76,6 +76,7 @@ class Network:
         print(f" -- Slow nodes percent: {self.percent_slow_nodes}")
         print(f" -- Low cpu nodes percent: {self.percent_low_cpu_nodes}")
         print(f" -- Output directory: {self.output_dir}")
+        print(f" -- Dark Mode: {self.dark_mode}")
         print(f" -- Min neighbors: {self.min_neighbors}")
         print(f" -- Max neighbors: {self.max_neighbors}")
         print(f" -- Adversary one mining power: {self.adversary_one_mining_power}")
