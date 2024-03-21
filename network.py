@@ -310,9 +310,14 @@ class Network:
 
         print("Creating plot of blockchain of each node...")
         d = Digraph(
-            "simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled", "fillcolor": "#FFFFE0"}
+            "simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled"}
         )
-        d.graph_attr["rankdir"] = "RL"
+        d.graph_attr["rankdir"] = "LR"
+        adversary_node_ids = []
+        for node in self.nodes:
+            if isinstance(node, AdversaryNode):
+                adversary_node_ids.append(node.id)
+
         for i, node in enumerate(reversed(self.nodes)):
             with d.subgraph(
                 name=f"cluster_outer_{i}"
@@ -324,15 +329,17 @@ class Network:
                         color="none",
                         fillcolor="#E6F7FF",
                         labelloc="b",
-                        labeljust="r",
+                        labeljust="l",
                         label=f'< <FONT POINT-SIZE="20"><B>Node {node.id}</B></FONT> >',
                     )
                     for block in node.block_registry.values():
                         miner = block.txns[0].receiver_id if block.txns else "Satoshi"
                         label = f"{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
-                        c.node(f"{node.id}-{block.hash}", label=label)
+                        fillcolor = "#FFBBBB" if miner == adversary_node_ids[0] else "#FFFFDD" 
+                        fillcolor = "#BBBBFF" if miner == adversary_node_ids[1] else fillcolor
+                        c.node(f"{node.id}-{block.hash}", label=label, _attributes={'fillcolor': fillcolor})
                         if block.prev_hash != -1:
-                            c.edge(f"{node.id}-{block.hash}", f"{node.id}-{block.prev_hash}")
+                            c.edge(f"{node.id}-{block.prev_hash}", f"{node.id}-{block.hash}", dir="back")
 
         d.view(directory=self.output_dir)
 
