@@ -309,7 +309,6 @@ class Network:
         """method to visualize blockchain"""
 
         print("Creating plot of blockchain of each node...")
-
         colors = {
             "bgcolor": "#11151b" if self.dark_mode == "True" else "white",
             "fillcolor": "#222730" if self.dark_mode == "True" else "#E6F7FF",
@@ -346,7 +345,8 @@ class Network:
                     )
                     for block in node.block_registry.values():
                         miner = block.txns[0].receiver_id if block.txns else "Satoshi"
-                        label = f"{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
+                        private = "PVT: " if node.id in adversary_node_ids and block.hash in node.private_chain else ""
+                        label = f"{private}{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
                         fillcolor = colors["block_adv_one"] if miner == adversary_node_ids[0] else colors["block_default"]
                         fillcolor = colors["block_adv_two"] if miner == adversary_node_ids[1] else fillcolor
                         c.node(f"{node.id}-{block.hash}", label=label, _attributes={"fillcolor": fillcolor, "fontcolor": colors["block_text"], "color": colors["edge"]})
