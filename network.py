@@ -107,7 +107,7 @@ class Network:
         # Create coinbase transactions to initialize balances
         genesis_transactions = []
         genesis = Block(self.time, -1, 0, genesis_transactions)
-        for i in range(self.total_nodes-2):
+        for i in range(self.total_nodes - 2):
             speed_threshold = np.random.uniform(0, 1)
             cpu_threshold = np.random.uniform(0, 1)
             is_slow = speed_threshold <= (self.percent_slow_nodes / 100.0)
@@ -119,15 +119,14 @@ class Network:
                 self.num_low_cpu_nodes += 1
             node = Node(i, is_slow, is_low_cpu, self, genesis)
             self.nodes.append(node)
-        
+
         # Create adversary nodes
-        node = AdversaryNode(self.total_nodes-2, False, False, self, genesis)
-        node.hashing_power = self.adversary_one_mining_power/100.0
+        node = AdversaryNode(self.total_nodes - 2, False, False, self, genesis)
+        node.hashing_power = self.adversary_one_mining_power / 100.0
         self.nodes.append(node)
-        node = AdversaryNode(self.total_nodes-1, False, False, self, genesis)
-        node.hashing_power = self.adversary_two_mining_power/100.0
+        node = AdversaryNode(self.total_nodes - 1, False, False, self, genesis)
+        node.hashing_power = self.adversary_two_mining_power / 100.0
         self.nodes.append(node)
-        
 
     def create_network_topology(self):
         """method to build connections between nodes"""
@@ -195,7 +194,7 @@ class Network:
         print("Setting hashing power for each node...")
         # High hash power = 10 x Low hash power
         high_cpu_nodes = self.total_nodes - self.num_low_cpu_nodes
-        total_honest_hashing_power = 1 - (self.adversary_one_mining_power + self.adversary_two_mining_power)/100
+        total_honest_hashing_power = 1 - (self.adversary_one_mining_power + self.adversary_two_mining_power) / 100
         low_hash_power = total_honest_hashing_power / (10 * high_cpu_nodes + self.num_low_cpu_nodes)
         high_hash_power = 10 * low_hash_power
 
@@ -309,9 +308,7 @@ class Network:
         """method to visualize blockchain"""
 
         print("Creating plot of blockchain of each node...")
-        d = Digraph(
-            "simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled"}
-        )
+        d = Digraph("simulation", node_attr={"fontname": "Arial", "shape": "record", "style": "filled"})
         d.graph_attr["rankdir"] = "LR"
         adversary_node_ids = []
         for node in self.nodes:
@@ -335,9 +332,9 @@ class Network:
                     for block in node.block_registry.values():
                         miner = block.txns[0].receiver_id if block.txns else "Satoshi"
                         label = f"{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
-                        fillcolor = "#FFBBBB" if miner == adversary_node_ids[0] else "#FFFFDD" 
+                        fillcolor = "#FFBBBB" if miner == adversary_node_ids[0] else "#FFFFDD"
                         fillcolor = "#BBBBFF" if miner == adversary_node_ids[1] else fillcolor
-                        c.node(f"{node.id}-{block.hash}", label=label, _attributes={'fillcolor': fillcolor})
+                        c.node(f"{node.id}-{block.hash}", label=label, _attributes={"fillcolor": fillcolor})
                         if block.prev_hash != -1:
                             c.edge(f"{node.id}-{block.prev_hash}", f"{node.id}-{block.hash}", dir="back")
 
