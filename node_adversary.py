@@ -106,6 +106,7 @@ class AdversaryNode(Node):
         block_lead = block.height - self.block_registry[self.l_v_c_hash].height
         # going from 0' state to 1' state
         if block_lead == 1 and self.last_adversary_block_mined_hash is not None:
+            block.release_time = self.network.time
             self.block_broadcast(block)
         else:
             # Add the block hash to private queue
@@ -215,16 +216,7 @@ class AdversaryNode(Node):
             self.block_release_all()
         elif block_lead > 2:
             # Release one block at start of private chain
-            adversary_block = self.block_registry[self.private_chain.popleft()]
-            log.debug(
-                "Blk_broadcast -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
-                adversary_block.txns[0].receiver_id,
-                adversary_block.height,
-                adversary_block.hash_s,
-                adversary_block.prev_hash_s,
-                adversary_block.mine_time,
-            )
-            self.block_broadcast(adversary_block, source_node_id)
+            self.block_release_one()
 
         self.block_hash_being_mined = None
         self.block_create()
@@ -233,6 +225,8 @@ class AdversaryNode(Node):
 
     def block_broadcast(self, block, source_node_id=None):
         """method to broadcast block"""
+        if block.release_time == 0.0:
+            log.warning("Block release time not set")
         for node_id in self.get_neighbors():
             if source_node_id and node_id == source_node_id:
                 continue
@@ -244,12 +238,26 @@ class AdversaryNode(Node):
                 Event(self.network.time + delay, self, node_id, "blk_recv", data=deepcopy(block))
             )
 
+    def block_release_one(self):
+        """method to release only one block at start of the private chain"""
+        block = self.block_registry[self.private_chain.popleft()]
+        block.release_time = self.network.time
+        log.debug(
+            "Blk_broadcast -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+            block.txns[0].receiver_id,
+            block.height,
+            block.hash_s,
+            block.prev_hash_s,
+            block.mine_time,
+        )
+        self.block_broadcast(block)
 
     def block_release_all(self):
         """method to release all blocks in private chain to public chain"""
         while self.private_chain:
             block_hash = self.private_chain.popleft()
             block = self.block_registry[block_hash]
+            block.release_time = self.network.time
             log.debug(
                 "Blk_broadcast -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
                 block.txns[0].receiver_id,

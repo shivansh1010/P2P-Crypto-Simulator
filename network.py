@@ -348,6 +348,7 @@ class Network:
                         miner = block.txns[0].receiver_id if block.txns else "Satoshi"
                         private = "PVT: " if node.id in adversary_node_ids and block.hash in node.private_chain else ""
                         label = f"{private}{block.hash_s} | MineTime= {round(block.mine_time, 2)} | {{ Height={block.height} | Miner = {miner} }} | IncludedTxns={len(block.txns)}"
+                        label = f"{label} | ReleaseTime= {round(block.release_time, 2)}" if miner in adversary_node_ids else label
                         fillcolor = colors["block_adv_one"] if miner == adversary_node_ids[0] else colors["block_default"]
                         fillcolor = colors["block_adv_two"] if miner == adversary_node_ids[1] else fillcolor
                         c.node(f"{node.id}-{block.hash}", label=label, _attributes={"fillcolor": fillcolor, "fontcolor": colors["block_text"], "color": colors["edge"]})

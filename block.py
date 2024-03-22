@@ -15,6 +15,7 @@ class Block:
         # these are not included in the block-hash
         self.hash = self.block_hash()  # unique ID for every block
         self.mine_time = mine_time
+        self.release_time = 0.0 # TODO: remove this
 
     def block_hash(self):
         """method to calculate hash of a block"""
