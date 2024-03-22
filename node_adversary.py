@@ -226,6 +226,19 @@ class AdversaryNode(Node):
         # dont Broadcast Block
         # self.block_broadcast(block, source_node_id)
 
+    def block_broadcast(self, block, source_node_id=None):
+        """method to broadcast block"""
+        for node_id in self.get_neighbors():
+            if source_node_id and node_id == source_node_id:
+                continue
+
+            self.l_v_c_hash = block.hash
+            block_size = len(block.txns) * self.network.transaction_size
+            delay = self.compute_delay(block_size, node_id)
+            self.network.event_queue.push(
+                Event(self.network.time + delay, self, node_id, "blk_recv", data=deepcopy(block))
+            )
+
 
     def block_release_all(self):
         """method to release all blocks in private chain to public chain"""
