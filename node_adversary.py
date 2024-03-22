@@ -92,7 +92,8 @@ class AdversaryNode(Node):
         # Remove the block transactions from transaction pool
         for txn in list(block.txns)[1:]:
             # self.txn_pool.remove(txn)
-            del self.txn_pool[txn.id]
+            if txn in self.txn_pool:
+                del self.txn_pool[txn.id]
 
         # Print the coinbase transaction
         # log.debug(str(block.txns[0]))
@@ -194,6 +195,10 @@ class AdversaryNode(Node):
 
         # Check if this is a parent of some pending block and add them
         self.process_pending_blocks(block)
+
+        # If it's a fork on lvc, ignore
+        if block.height <= last_block.height:
+            return
 
         # find block lead
         if self.last_adversary_block_mined_hash is not None:
