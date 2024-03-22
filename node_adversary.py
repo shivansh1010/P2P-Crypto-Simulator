@@ -99,6 +99,7 @@ class AdversaryNode(Node):
         log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
         # log.info(block.txns[0].__str_v2__())
 
+        self.block_registry[block.hash] = block
 
         # Broadcast the block to neighbors
         block_lead = block.height - self.block_registry[self.l_v_c_hash].height
@@ -107,7 +108,6 @@ class AdversaryNode(Node):
             self.block_broadcast(block)
         else:
             # Add the block hash to private queue
-            self.block_registry[block.hash] = block
             self.private_chain.append(block.hash)
         self.last_adversary_block_mined_hash = block.hash
 
