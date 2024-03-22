@@ -231,7 +231,7 @@ class Node:
 
         # Print the coinbase transaction
         # log.debug(str(block.txns[0]))
-        log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
+        # log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
         # log.info(block.txns[0].__str_v2__())
 
         # Broadcast the block to neighbors

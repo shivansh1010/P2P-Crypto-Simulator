@@ -30,6 +30,7 @@ class AdversaryNode(Node):
             parent_block_hash = self.l_v_c_hash
         else:
             parent_block_hash = self.last_adversary_block_mined_hash
+        log.debug("Adversary %s -> mining block on parent block %s", self.id, parent_block_hash[:7])
 
         parent_block_height = self.block_registry[parent_block_hash].height
 
@@ -81,7 +82,7 @@ class AdversaryNode(Node):
         block.mine_time = self.network.time
 
         log.info(
-            "Blk_mine -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+            "Adversary %s -> blk_mined, height %s, hash %s, prev_hash %s, mine_time %s",
             self.id,
             block.height,
             block.hash_s,
@@ -97,13 +98,14 @@ class AdversaryNode(Node):
 
         # Print the coinbase transaction
         # log.debug(str(block.txns[0]))
-        log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
+        # log.debug("Coinbase -> receiver %s, amount %s", block.txns[0].receiver_id, block.txns[0].amount)
         # log.info(block.txns[0].__str_v2__())
 
         self.block_registry[block.hash] = block
 
         # Broadcast the block to neighbors
         block_lead = block.height - self.block_registry[self.l_v_c_hash].height
+        log.debug("Adversary %s -> block lead is %s, last_block_mined %s", self.id, block_lead, self.last_adversary_block_mined_hash)
         # going from 0' state to 1' state
         if block_lead == 1 and self.last_adversary_block_mined_hash is not None:
             block.release_time = self.network.time
@@ -111,6 +113,8 @@ class AdversaryNode(Node):
         else:
             # Add the block hash to private queue
             self.private_chain.append(block.hash)
+            private_chain_str = [block_hash[:7] for block_hash in self.private_chain]
+            log.debug("Adversary %s -> adding block to private chain, chain length is %s %s", self.id, len(self.private_chain), private_chain_str)
         self.last_adversary_block_mined_hash = block.hash
 
         # Restart block mining
@@ -146,14 +150,14 @@ class AdversaryNode(Node):
         if not self.is_block_valid(block):
             return
 
-        # log.debug(
-        #     "Blk_recv -> receiver %s, height %s, hash %s, prev_hash %s, mine_time %s",
-        #     self.id,
-        #     block.height,
-        #     block.hash_s,
-        #     block.prev_hash_s,
-        #     block.mine_time,
-        # )
+        log.debug(
+            "Adversary %s -> blk_receive, height %s, hash %s, prev_hash %s, mine_time %s",
+            self.id,
+            block.height,
+            block.hash_s,
+            block.prev_hash_s,
+            block.mine_time,
+        )
 
         # Add to block registry
         self.block_registry[block.hash] = block
@@ -170,7 +174,7 @@ class AdversaryNode(Node):
                 old_branch = self.l_v_c_hash
                 new_branch = block.prev_hash
                 log.info(
-                    "Node %s changing mining branch from %s to %s", self.id, self.l_v_c_hash, block.prev_hash
+                    "Adversary %s -> changing mining branch from %s to %s", self.id, self.l_v_c_hash, block.hash
                 )
 
                 while old_branch != new_branch:
@@ -207,15 +211,14 @@ class AdversaryNode(Node):
             block_lead = last_adversary_block_mined.height - self.block_registry[self.l_v_c_hash].height
         else:
             block_lead = 0
-                    
-        if block_lead <= 0:
-            # Restart attack
+        log.debug("Adversary %s -> block lead is %s, last_block_mined %s", self.id, block_lead, self.last_adversary_block_mined_hash)
+
+        if block_lead < 0:
             self.last_adversary_block_mined_hash = None
-        elif block_lead == 1 or block_lead == 2:
-            # Release all blocks if any
+        
+        if block_lead <= 2:
             self.block_release_all()
-        elif block_lead > 2:
-            # Release one block at start of private chain
+        else:
             self.block_release_one()
 
         self.block_hash_being_mined = None
@@ -225,6 +228,16 @@ class AdversaryNode(Node):
 
     def block_broadcast(self, block, source_node_id=None):
         """method to broadcast block"""
+
+        log.debug(
+            "Adversary %s -> blk_brdcast, miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+            self.id,
+            block.txns[0].receiver_id,
+            block.height,
+            block.hash_s,
+            block.prev_hash_s,
+            block.mine_time,
+        )
         if block.release_time == 0.0:
             log.warning("Block release time not set")
         for node_id in self.get_neighbors():
@@ -242,14 +255,6 @@ class AdversaryNode(Node):
         """method to release only one block at start of the private chain"""
         block = self.block_registry[self.private_chain.popleft()]
         block.release_time = self.network.time
-        log.debug(
-            "Blk_broadcast -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
-            block.txns[0].receiver_id,
-            block.height,
-            block.hash_s,
-            block.prev_hash_s,
-            block.mine_time,
-        )
         self.block_broadcast(block)
 
     def block_release_all(self):
@@ -258,12 +263,4 @@ class AdversaryNode(Node):
             block_hash = self.private_chain.popleft()
             block = self.block_registry[block_hash]
             block.release_time = self.network.time
-            log.debug(
-                "Blk_broadcast -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
-                block.txns[0].receiver_id,
-                block.height,
-                block.hash_s,
-                block.prev_hash_s,
-                block.mine_time,
-            )
             self.block_broadcast(block)

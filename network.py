@@ -279,7 +279,10 @@ class Network:
         # print(f"Node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}, hash {node.longest_leaf_hash[:7]}"
         print()
         print("Ratio of mined blocks included in longest chain to total mined blocks by the node:")
+
         for node in self.nodes:
+            if isinstance(node, AdversaryNode):
+                node.longest_leaf_hash = node.l_v_c_hash
             accepted_self_mined_blocks = 0
             total_mined_blocks = 0
             for block in node.block_registry.values():
@@ -317,7 +320,7 @@ class Network:
             "edge": "#999999" if self.dark_mode == "True" else "black",
             "block_default": "#45494e" if self.dark_mode == "True" else "#FFFFDD",
             "block_adv_one": "#5e2e33" if self.dark_mode == "True" else "#FFBBBB",
-            "block_adv_two": "#2f2d96" if self.dark_mode == "True" else "#BBBBFF",
+            "block_adv_two": "#302e8c" if self.dark_mode == "True" else "#BBBBFF",
             "block_text": "white" if self.dark_mode == "True" else "black",
         }
 
