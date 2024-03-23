@@ -243,14 +243,14 @@ class Node:
         for pending_blk in self.pending_blocks:
             if pending_blk.prev_hash == block.hash:
                 self.pending_blocks.remove(pending_blk)
-                self.block_receive_handler(pending_blk, self.id)
+                self.block_receive_handler(pending_blk)
                 break
 
-    def block_receive_handler(self, block, source_node_id):
+    def block_receive_handler(self, block, source_node_id=None):
         """method to handle block receive event"""
 
         # Ensure loopless forwarding
-        if self.id == source_node_id:
+        if source_node_id and self.id == source_node_id:
             return
         if block.hash in self.block_registry:
             return
@@ -261,20 +261,21 @@ class Node:
         # Add to pending blocks if previous block not received
         if block.prev_hash not in self.block_registry:
             self.pending_blocks.add(block)
+            log.warning("Node %s -> adding block %s to pending as parent block %s not arrived", self.id, block.hash_s, block.prev_hash_s)
             return
 
         # Validate Block
         if not self.is_block_valid(block):
             return
 
-        # log.debug(
-        #     "Blk_recv -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
-        #     self.id,
-        #     block.height,
-        #     block.hash_s,
-        #     block.prev_hash_s,
-        #     block.mine_time,
-        # )
+        log.debug(
+            "Blk_recv -> miner %s, height %s, hash %s, prev_hash %s, mine_time %s",
+            self.id,
+            block.height,
+            block.hash_s,
+            block.prev_hash_s,
+            block.mine_time,
+        )
 
         # Add to block registry
         self.block_registry[block.hash] = block
@@ -380,5 +381,5 @@ class Node:
             block_size = len(block.txns) * self.network.transaction_size
             delay = self.compute_delay(block_size, node_id)
             self.network.event_queue.push(
-                Event(self.network.time + delay, self, node_id, "blk_recv", data=deepcopy(block))
+                Event(self.network.time + delay, self.id, node_id, "blk_recv", data=deepcopy(block))
             )
