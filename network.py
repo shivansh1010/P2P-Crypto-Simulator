@@ -268,19 +268,36 @@ class Network:
     def display_info(self):
         """display info about the simulation"""
         print("Events currently in event queue: ", self.event_queue.queue.qsize())
+        print()
+
+        adversary_node_ids = []
+        for node in self.nodes:
+            if isinstance(node, AdversaryNode):
+                adversary_node_ids.append(node.id)
 
         all_blocks = set()
         for node in self.nodes:
             all_blocks = all_blocks.union(set(node.block_registry.keys()))
         print(f"Total number of blocks mined by all nodes: {len(all_blocks)}")
+        for block_hash in self.nodes[adversary_node_ids[0]].private_chain:
+            all_blocks.remove(block_hash)
+        for block_hash in self.nodes[adversary_node_ids[1]].private_chain:
+            all_blocks.remove(block_hash)
+        print(f"Total number of blocks mined by all nodes excluding private chains: {len(all_blocks)}")
+
+        lvc_leaf_height = self.nodes[0].block_registry[self.nodes[0].longest_leaf_hash].height
+        print("Number of blocks in longest chain of honest nodes: ", lvc_leaf_height)
 
         # for node in self.nodes:
         # print(f" node {node.id} has blocks: {list(node.block_registry.keys())}")
         # print(f"Node {node.id} has longest chain at height: {node.block_registry[node.longest_leaf_hash].height}, hash {node.longest_leaf_hash[:7]}"
         print()
-        print("Ratio of mined blocks included in longest chain to total mined blocks by the node:")
+        # print("Ratio of mined blocks included in longest chain to total mined blocks by the node:")
+        print(" -- MPU_adversary_nodes --")
 
         for node in self.nodes:
+            if node.id not in adversary_node_ids:
+                continue
             if isinstance(node, AdversaryNode):
                 node.longest_leaf_hash = node.l_v_c_hash
             accepted_self_mined_blocks = 0
@@ -288,7 +305,7 @@ class Network:
             for block in node.block_registry.values():
                 if len(block.txns) == 0:
                     continue
-                if block.txns[0].receiver_id == node.id:
+                if block.txns[0].receiver_id == node.id and block.hash not in node.private_chain:
                     total_mined_blocks += 1
 
             curr_block_hash = node.longest_leaf_hash
@@ -307,6 +324,10 @@ class Network:
             print(
                 f"Node {node.id} ({cpu_type}, {node_type}):  {accepted_self_mined_blocks} / {total_mined_blocks} = {ratio}"
             )
+        print()
+
+        print(" -- MPU_overall -- ")
+        print(f"{lvc_leaf_height} / {len(all_blocks)} = {round(lvc_leaf_height / len(all_blocks), 4)}")
         print()
 
     def create_plot(self):
