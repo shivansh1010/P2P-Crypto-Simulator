@@ -285,7 +285,9 @@ class Network:
             all_blocks.remove(block_hash)
         print(f"Total number of blocks mined by all nodes excluding private chains: {len(all_blocks)}")
 
-        lvc_leaf_height = self.nodes[0].block_registry[self.nodes[0].longest_leaf_hash].height
+        lvc_leaf_hash = self.nodes[0].longest_leaf_hash
+        lvc_block = self.nodes[0].block_registry[lvc_leaf_hash]
+        lvc_leaf_height = lvc_block.height
         print("Number of blocks in longest chain of honest nodes: ", lvc_leaf_height)
 
         # for node in self.nodes:
@@ -308,14 +310,15 @@ class Network:
                 if block.txns[0].receiver_id == node.id and block.hash not in node.private_chain:
                     total_mined_blocks += 1
 
-            curr_block_hash = node.longest_leaf_hash
+            # curr_block_hash = node.longest_leaf_hash
+            curr_block_hash = lvc_leaf_hash
             while curr_block_hash != -1:
-                curr_block = node.block_registry[curr_block_hash]
+                curr_block = self.nodes[0].block_registry[curr_block_hash]
                 if len(curr_block.txns) == 0:
                     break
                 if curr_block.txns[0].receiver_id == node.id:
                     accepted_self_mined_blocks += 1
-                curr_block_hash = node.block_registry[curr_block_hash].prev_hash
+                curr_block_hash = self.nodes[0].block_registry[curr_block_hash].prev_hash
             ratio = round(
                 accepted_self_mined_blocks / total_mined_blocks if total_mined_blocks != 0 else float("inf"), 4
             )
